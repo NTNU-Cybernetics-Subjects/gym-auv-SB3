@@ -1049,12 +1049,15 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    from win10toast import ToastNotifier
-    toaster = ToastNotifier()
+    from plyer import notification
     #try:
     main(args)
-    toaster.show_toast("run.py", "Program is done", duration=10)
+    notification.notify(
+        title='run.py',
+        message='Program is done',
+        timeout=10
+    )
     #except Exception as e:
-    #    toaster.show_toast("run.py", "Program has crashed", duration=10)
+    #    notification.notify("run.py", "Program has crashed", timeout=10)
     #    raise e
     
