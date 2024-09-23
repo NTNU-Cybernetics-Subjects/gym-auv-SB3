@@ -32,7 +32,7 @@ from collections import deque
 from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
 
 speedups.enable()
-DIR_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
 def _preprocess_custom_envconfig(rawconfig):
