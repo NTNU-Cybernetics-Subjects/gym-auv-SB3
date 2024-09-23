@@ -19,7 +19,6 @@ from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, Subp
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines3 import PPO, DDPG, TD3, A2C, SAC
 from sklearn.model_selection import ParameterGrid
-from shapely import speedups
 
 from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, BaseCallback, EvalCallback
 import queue
@@ -31,7 +30,6 @@ from collections import deque
 ### THOMAS
 from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
 
-speedups.enable()
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 
