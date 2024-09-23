@@ -735,12 +735,16 @@ def main(args):
                 #        )
                 if self.num_timesteps % self.record_agent_freq == 0:
                     agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
-                    cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
-                        args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
+                    executable = sys.executable
+                    running_env = os.environ.copy()
+                    cmd = '{} run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
+                        executable, args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
                         recording_length, args.algo, envconfig_string,
                         ' --recurrent' if args.recurrent else ''
                     )
-                    subprocess.Popen(cmd)
+                    
+                    # subprocess.Popen(cmd, env=running_env)
+
 
                 return True
 
