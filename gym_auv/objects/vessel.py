@@ -298,9 +298,9 @@ class Vessel():
 
         Parameters
         ----------
-        action : np.ndarray[thrust_input, torque_input]
+        action : np.ndarray[thrust_left_motor, thrust_right_motor]
         """
-        self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
+        self._input = np.array([self._thrust_left_motor(action[0]), self._thrust_right_motor(action[1])])
         w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
         
         self._state = q
@@ -490,7 +490,10 @@ class Vessel():
         psi = state[2]
         nu = state[3:]
 
-        tau = np.array([self._input[0], 0, self._input[1]])
+        tau = np.array([self._input[0] + self._input[1], 0,
+                        self.config['lever_arm_left_propeller']*self._input[0]
+                        + self.config['lever_arm_right_propeller']*self._input[1]])      # Had minus at both propeller inputs here,
+                                                                                         # but it seemed to go the wrong way 
 
         eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
         nu_dot = const.M_inv.dot(
@@ -508,3 +511,14 @@ class Vessel():
     def _moment_steer(self, steer):
         steer = np.clip(steer, -1, 1)
         return steer*self.config['moment_max_auv']
+    
+    # ---- JAN ADDING MODEL WITH DIRECT THRUSTER INPUTS --- #
+    
+    def _thrust_left_motor(self, thrust_left):
+        thrust_left = np.clip(thrust_left, 0, 1)*self.config['thrusters_max_forward']
+        return thrust_left
+    
+    
+    def _thrust_right_motor(self, thrust_right):
+        thrust_right = np.clip(thrust_right, 0, 1)*self.config['thrusters_max_forward']
+        return thrust_right

@@ -44,6 +44,11 @@ DEFAULT_CONFIG = {
                                                     # or if a virtual obstacle based on the latest reading should be used (False).
                                                     # This represents a trade-off between sensor accuracy and computation speed.
                                                     # With real-world terrain, using virtual obstacles is critical for performance.
+    # ---- JAN ADDING BLUEBOAT-SPESIFIC THINGS --- #
+    'thrusters_max_forward': 2.0, #55.21,                # Read from Blue Robotics data on one M200 Motor with weedless propeller(5.63 KGF on website) --> [N]
+    'thrusters_max_backwards': 2.0, #27.56,              # Read from Blue Robotics data on one M200 Motor with weedless propeller(2.81 KGF on website) --> [N]
+    'lever_arm_left_propeller': -0.285,            # Lever arm of propellers from centerline, MUST BE MEASURED, THIS IS FROM PONTOON TO PONTOON  [m]
+    'lever_arm_right_propeller': 0.285,            
     
     # ---- RENDERING ---- #
     "show_indicators": True,                        # Whether to show debug information on screen during 2d rendering.

@@ -100,8 +100,8 @@ def play_scenario(env, recorded_env, args, agent=None):
         nonlocal autopilot
         if k == key.DOWN:  key_input[0] = -1
         if k == key.UP:    key_input[0] = 1
-        if k == key.LEFT:  key_input[1] = 0.5
-        if k == key.RIGHT: key_input[1] = -0.5
+        if k == key.LEFT:  key_input[1] = 1
+        if k == key.RIGHT: key_input[1] = -1
         if k == key.NUM_2: key_input[2] = -1
         if k == key.NUM_1: key_input[2] = 1
         if k == key.J: key_input[3] = -1
