@@ -71,7 +71,7 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
     return _init
 
 
-def play_scenario(env, recorded_env, args, agent=None):
+def play_scenario(env, recorded_env, args, figure_folder, agent=None):
     # if args.video:
     #     print('Recording enabled')
     #     recorded_env = VecVideoRecorder(env, args.video_dir, record_video_trigger=lambda x: x == 0, 
@@ -80,7 +80,7 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     from pyglet.window import key
 
-    key_input = np.array([-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    key_input = np.array([-1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     autopilot = False
 
     # gail_expert_generation = False
@@ -93,25 +93,15 @@ def play_scenario(env, recorded_env, args, agent=None):
     # gail_reward_sum = 0
     # gail_ep_idx = 0
     
+    
+    
 
     print('Playing scenario: ', env)
 
     def key_press(k, mod):
         nonlocal autopilot
-        if k == key.DOWN:  key_input[0] = -1
-        if k == key.UP:    key_input[0] = 1
-        if k == key.LEFT:  key_input[1] = 1
-        if k == key.RIGHT: key_input[1] = -1
-        if k == key.NUM_2: key_input[2] = -1
-        if k == key.NUM_1: key_input[2] = 1
-        if k == key.J: key_input[3] = -1
-        if k == key.U: key_input[3] = 1
-        if k == key.I: key_input[4] = -1
-        if k == key.K: key_input[4] = 1
-        if k == key.O: key_input[5] = -1
-        if k == key.P: key_input[5] = 1
-        if k == key.NUM_4: key_input[6] = -1
-        if k == key.NUM_3: key_input[6] = 1
+        if k == key.LEFT:  key_input[0] = 0.5
+        if k == key.RIGHT: key_input[1] = 0.5
         if k == key.A: 
             autopilot = not autopilot
             print('Autopilot {}'.format(autopilot))
@@ -127,20 +117,8 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.Q:
             quit = True
             print('quit')
-        if k == key.UP:    key_input[0] = -1
-        if k == key.DOWN:  key_input[0] = -1
-        if k == key.LEFT and key_input[1] != 0: key_input[1] = 0
-        if k == key.RIGHT and key_input[1] != 0: key_input[1] = 0
-        if k == key.NUM_2 and key_input[2] != 0: key_input[2] = 0
-        if k == key.NUM_1 and key_input[2] != 0: key_input[2] = 0
-        if k == key.U and key_input[3] != 0: key_input[3] = 0
-        if k == key.J and key_input[3] != 0: key_input[3] = 0
-        if k == key.I and key_input[4] != 0: key_input[4] = 0
-        if k == key.K and key_input[4] != 0: key_input[4] = 0
-        if k == key.O and key_input[5] != 0: key_input[5] = 0
-        if k == key.P and key_input[5] != 0: key_input[5] = 0
-        if k == key.NUM_4 and key_input[6] != 0: key_input[6] = 0
-        if k == key.NUM_3 and key_input[6] != 0: key_input[6] = 0
+        if k == key.LEFT and key_input[0] != 0: key_input[0] = -1
+        if k == key.RIGHT and key_input[1] != 0: key_input[1] = -1
 
     viewer = env.env._viewer2d if args.render in {'both', '2d'} else env._viewer3d
     viewer.window.on_key_press = key_press
@@ -289,7 +267,10 @@ def main(args):
             video_length=args.recording_length, name_prefix=(args.env if args.video_name == 'auto' else args.video_name)
         )
         print(args.video_dir, args.video_name)
-        play_scenario(env, recorded_env, args, agent=agent)
+        
+        figure_folder = os.path.join(DIR_PATH, 'logs', 'play_results', args.env, EXPERIMENT_ID)
+        os.makedirs(figure_folder, exist_ok=True)
+        play_scenario(env, recorded_env, args, figure_folder, agent=agent)
         recorded_env.env.close()
 
     elif (args.mode == 'enjoy'):
@@ -628,7 +609,7 @@ def main(args):
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
         total_timesteps = 1000                      # changed from 10000000 timesteps to test training
-        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
+        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
@@ -857,7 +838,7 @@ def main(args):
                 t_steps += 1
                 cumulative_reward += reward[0]
                 report_msg = '{:<20}{:<20}{:<20.2f}{:<20.2%}{:0.1f}fps\r'.format(
-                    id, t_steps, cumulative_reward, info[0]['progress'], 1/(time() - start_time))
+                    id, t_steps, cumulative_reward, info[0]['progress'], 1)     # /(time() - start_time) is taken out of fps as it sometimes gives zero division
                 sys.stdout.write(report_msg)
                 sys.stdout.flush()
 

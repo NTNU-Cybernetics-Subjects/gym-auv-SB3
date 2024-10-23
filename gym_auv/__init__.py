@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
     # ---- SIMULATION ---- #
-    "t_step_size": 1.0,                             # Length of simulation timestep [s]
+    "t_step_size": 1.0, # 1.0 originally                             # Length of simulation timestep [s]
     "sensor_frequency": 1.0,                        # Sensor execution frequency (0.0 = never execute, 1.0 = always execute)
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
@@ -45,10 +45,10 @@ DEFAULT_CONFIG = {
                                                     # This represents a trade-off between sensor accuracy and computation speed.
                                                     # With real-world terrain, using virtual obstacles is critical for performance.
     # ---- JAN ADDING BLUEBOAT-SPESIFIC THINGS --- #
-    'thrusters_max_forward': 2.0, #55.21,                # Read from Blue Robotics data on one M200 Motor with weedless propeller(5.63 KGF on website) --> [N]
-    'thrusters_max_backwards': 2.0, #27.56,              # Read from Blue Robotics data on one M200 Motor with weedless propeller(2.81 KGF on website) --> [N]
-    'lever_arm_left_propeller': -0.285,            # Lever arm of propellers from centerline, MUST BE MEASURED, THIS IS FROM PONTOON TO PONTOON  [m]
-    'lever_arm_right_propeller': 0.285,            
+    'thrusters_max_forward': 55.21, #119.6,                # Read from Blue Robotics data on one M200 Motor with weedless propeller(5.63 KGF on website) --> [N]
+    'thrusters_max_backwards': 27.56, #66.69,              # Read from Blue Robotics data on one M200 Motor with weedless propeller(2.81 KGF on website) --> [N]
+    'lever_arm_left_propeller': -0.285, # - 0.395            # Lever arm of propellers from centerline, MUST BE MEASURED, THIS IS FROM PONTOON TO PONTOON  [m]
+    'lever_arm_right_propeller': 0.285, # 0.395           
     
     # ---- RENDERING ---- #
     "show_indicators": True,                        # Whether to show debug information on screen during 2d rendering.

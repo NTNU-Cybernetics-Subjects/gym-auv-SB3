@@ -224,7 +224,8 @@ class BaseEnvironment(gym.Env, ABC):
             Dictionary with data used for reporting or debugging
         """
 
-        # action[0] = (action[0] + 1)/2 # Done to be compatible with RL algorithms that require symmetric action spaces
+        action[0] = (action[0] + 1)/2 # Done to be compatible with RL algorithms that require symmetric action spaces
+        action[1] = (action[1] + 1)/2 # Done to be compatible with RL algorithms that require symmetric action spaces
         if np.isnan(action).any(): action = np.zeros(action.shape)
 
         # If the environment is dynamic, calling self.update will change it.
@@ -232,6 +233,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         # Updating vessel state from its dynamics model
         self.vessel.step(action)
+        # print(f"Velocity from environment {self.vessel.velocity}")
 
         # Getting observation vector
         obs = self.observe()
