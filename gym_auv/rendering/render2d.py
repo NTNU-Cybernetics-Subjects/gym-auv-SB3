@@ -166,7 +166,7 @@ class Viewer2D(object):
         arr = arr.reshape(self.height, self.width, 4)
         return arr[::-1,:,0:3]
 
-    def transform_vertices(self, points, translation, rotation, scale=1):
+    def transform_vertices(self, points, translation, rotation, scale=1.0):
         res = []
         for p in points:
             res.append((
@@ -189,7 +189,7 @@ class Viewer2D(object):
         if (filled):
             self.draw_polygon(poly_path + [poly_path[0]], color=color)
         if (border):
-            border_color = (0, 0, 0) if type(border) == bool else border
+            border_color = (0, 0, 0) if type(border) is bool else border
             self.draw_polyline(poly_path + [poly_path[0]], linewidth=1, color=border_color if filled else color)
 
     def __del__(self):
@@ -302,9 +302,12 @@ class FilledPolygon(Geom):
         self.v = v
 
     def render1(self):
-        if   len(self.v) == 4 : gl.glBegin(gl.GL_QUADS)
-        elif len(self.v)  > 4 : gl.glBegin(gl.GL_POLYGON)
-        else: gl.glBegin(gl.GL_TRIANGLES)
+        if   len(self.v) == 4:
+            gl.glBegin(gl.GL_QUADS)
+        elif len(self.v)  > 4:
+            gl.glBegin(gl.GL_POLYGON)
+        else:
+            gl.glBegin(gl.GL_TRIANGLES)
         for p in self.v:
             gl.glVertex3f(p[0], p[1],0)  # draw each vertex
         gl.glEnd()
