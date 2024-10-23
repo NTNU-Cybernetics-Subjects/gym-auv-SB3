@@ -5,7 +5,7 @@ A Python simulation framework for Collision Avoidance for Unmanned Surface Vehic
 The detailed explanation of the software structure can be found in Eivind Meyers repository [gym-auv](https://github.com/EivMeyer)
 
 ## Prerequisites
-Note: Requires Python 3.7
+Note: Requires Python 3.8.10
 
 Note: Pybullet needs Microsoft Visual C++ 14.0. Install it with "Build Tools for Visual Studio".
 
@@ -14,17 +14,20 @@ Note: Stable-Baselines only supports Tensorflow 1.14, Tensorflow 2 support is pl
 ! Install Microsoft MPI (https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi) (msmpisetup.exe , not SDK)
 
 Note: Run the following __first__.
+
+On linux:
 ```
-conda install -c conda-forge shapely
-conda install swig
-conda install ffmpeg
+python3 -m venv venv
+source venv/bin/activate
+pip install -r rquirements.txt
+```
+Powershell in Windows:
+```
+python3 -m venv venv
+./venv/bin/activate.ps1
+pip install -r rquirements.txt
 ```
 
-Then run
-
-```
-pip install -e ./gym-auv/
-```
 ## Running the code
 You can now execute the script by running 
 ```
