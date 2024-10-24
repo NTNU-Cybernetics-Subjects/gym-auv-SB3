@@ -2,9 +2,7 @@ import numpy as np
 
 
 
-# ---- THE SIM MODEL WITH OTTER PARAM CALCULATIONS USING BB VALUES --- #
-# ---- WORKING ---- #
-# ---- With Otter params ---- #
+# ---- OTTER PARAM CALCULATIONS USING BB VALUES --- #
 
 # NB!!: Thruster and lever arms in _init_py must be changed when using this:
 # 'thrusters_max_forward': 55.21
@@ -58,24 +56,101 @@ N_r = - M[2,2] / T_yaw
 Y_r = -0.1  # Just a guess, making the sim more realistic when driving
 N_v = -0.1  # Just a guess, making the sim more realistic when driving
 
-M =  np.array([[m - X_udot, 0, 0],
-    [0, m - Y_vdot, m*x_g],
-    [0, m*x_g, I_z - N_rdot]]
-)   
-M_inv = np.linalg.inv(M)
+# N-matrice with structure before we made changes
+# def N(nu):
+#     u = nu[0]
+#     v = nu[1]
+#     r = nu[2]
+#     N = np.array([
+#         [-X_u, 0, 0],
+#         [0, -Y_v, m*u - Y_r],
+#         [0, - N_v, m*x_g*u-N_r]
+#     ])  
+#     return N
 
-
+# N-matrice from Fossen
 def N(nu):
     u = nu[0]
     v = nu[1]
     r = nu[2]
     N = np.array([
-        [-X_u, 0, 0],
-        [0, -Y_v, m*u - Y_r],
-        [0, - N_v, m*x_g*u-N_r]
+        [-X_u, -m*r, 0],
+        [m*r, -Y_v, -X_udot*u - Y_r],
+        [0, X_udot*u - N_v, -N_r]
     ])  
     return N
 
+
+
+# ---- FOSSEN 3DOF MODEL WITH SYSID PARAMS --- #
+# ---- Plot of the identification can be found in Simulated Models
+# ---- in the repo https://github.com/jankristia/BlueBoatSystemIdentification
+# ---- the image comparisonPlotUsingfourExperiments under SimulatedModels folder ----#
+
+# ---- PARAMS FROM THE IDENTIFICATION ----#
+# [Xudot, Yvdot, Nrdot, Xu, Yv, Nr]
+#    {[-26.7704]}
+#     {[-42.0934]}
+#     {[-17.3330]}
+#     {[-29.3484]}
+#     {[-41.5336]}
+#     {[-19.0174]}
+
+# # NB!!: Thruster and lever arms in _init_py must be changed when using this:
+# # 'thrusters_max_forward': 55.21
+# # 'thrusters_max_backwards': 27.56
+# # 'lever_arm_left_propeller': -0.285, 
+# # 'lever_arm_right_propeller': 0.285, 
+# # and set them back to 1 and 0.285 when going back to SIM model
+
+# # Main data
+# L = 1.195;            # length (m)
+# m = 15.0;           # mass (kg) / added 0.5 kg for batteries
+# x_g = 0.1            # CG for hull in x-axis only (m)
+# R66 = 0.25 * L      # radii of gyrations (m) 0.25 comes from "Principles of Yacht Design" by Larsson, Eliasson, and Orych or "Principles of Naval Architecture" (Society of Naval Architects and Marine Engineers, edited by Lewis
+# Ig_CG = m * R66
+# I_z = Ig_CG - m*x_g ** 2  
+
+# # Hydrodynamic added mass
+# X_udot = - 26.7704
+# Y_vdot = - 42.0934
+# N_rdot = - 17.3330
+
+
+# # Linear damping terms
+# X_u = - 29.3484
+# Y_v = - 41.5336
+# N_r = - 19.0174
+# # Y_r = -0.1  # Just a guess, making the sim more realistic when driving
+# # N_v = -0.1  # Just a guess, making the sim more realistic when driving
+
+
+# M =  np.array([[m - X_udot, 0, 0],
+#     [0, m - Y_vdot, m*x_g],
+#     [0, m*x_g, I_z - N_rdot]]
+# )   
+# M_inv = np.linalg.inv(M)
+
+# def N(nu):
+#     u = nu[0]
+#     v = nu[1]
+#     r = nu[2]
+#     N = np.array([
+#         [-X_u, -m*r, 0],
+#         [m*r, -Y_v, -X_udot*u],
+#         [0, X_udot*u, -N_r]
+#     ])  
+#     return N
+
+
+
+
+
+
+
+
+# -------------------- Models under this are either too simple or not for our case ---------------------- #
+# -------------------- So dont use ---------------------- #
 
 
 
@@ -259,3 +334,4 @@ def N(nu):
 #         [0, 0, m*x_g*u-N_r]
 #     ])  
 #     return N
+

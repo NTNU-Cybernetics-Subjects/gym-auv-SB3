@@ -608,7 +608,7 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 1000                      # changed from 10000000 timesteps to test training
+        total_timesteps = 100000                      # changed from 10000000 timesteps to test training
         save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
