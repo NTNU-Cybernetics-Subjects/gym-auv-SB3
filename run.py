@@ -1,6 +1,6 @@
 import os
 import sys
-# import subprocess
+import subprocess
 import numpy as np
 from time import time, sleep
 import argparse
@@ -8,11 +8,11 @@ import json
 import copy
 #from tqdm import tqdm
 import progressbar
-# import torch
+import torch
 import gym
 import gym_auv
 import gym_auv.reporting
-# import multiprocessing
+import multiprocessing
 
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, SubprocVecEnv, VecFrameStack
@@ -21,7 +21,7 @@ from stable_baselines3 import PPO, DDPG, TD3, A2C, SAC
 from sklearn.model_selection import ParameterGrid
 
 from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, BaseCallback, EvalCallback
-# import queue
+import queue
 from collections import deque
 from pyglet.window import key
 
@@ -901,8 +901,8 @@ def main(args):
     NUM_CPU = 8
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
-    EXPERIMENT_ID = str(int(time())) + args.algo.lower()
 
+    EXPERIMENT_ID = str(int(time())) + args.algo.lower()
     model = {
         'ppo': PPO,
         'ddpg': DDPG,
@@ -928,8 +928,7 @@ if __name__ == '__main__':
     parser.add_argument(
         'mode',
         help='Which program mode to run.',
-        # choices=['play', 'train', 'enjoy', 'test', 'policyplot', 'vectorfieldplot', 'streamlinesplot'],
-        choices=['play', 'train', 'enjoy', 'test'],
+        choices=['play', 'train', 'enjoy', 'test', 'policyplot', 'vectorfieldplot', 'streamlinesplot'],
     )
     parser.add_argument(
         'env',
