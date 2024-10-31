@@ -77,6 +77,12 @@ def _feasibility_pooling(x, width, theta):
 
     return max(0, np.max(x))
 
+def _max_pooling(x):
+    return np.max(x)
+
+def _min_pooling(x):
+    return np.min(x)
+
 def _simulate_sensor(sensor_angle, p0_point, sensor_range, obstacles):
     sensor_endpoint = (
         p0_point.x + np.cos(sensor_angle)*sensor_range,
@@ -145,8 +151,8 @@ class Vessel():
         self._feasibility_width = width*self.config["feasibility_width_multiplier"]
         self._n_sectors = self.config["n_sectors"]
         self._n_sensors = self.config["n_sensors_per_sector"]*self.config["n_sectors"]
-        self._d_sensor_angle = 2*np.pi/(self._n_sensors)
-        self._sensor_angles = np.array([-np.pi + (i + 1)*self._d_sensor_angle for i in range(self._n_sensors)])
+        self._d_sensor_angle = 2*np.pi/(self._n_sensors)                                                          # manipulate to change FoV
+        self._sensor_angles = np.array([-np.pi + (i + 1)*self._d_sensor_angle for i in range(self._n_sensors)])       # counter clockwise partitioning
         self._sector_angles = []
         self._n_sensors_per_sector = [0]*self._n_sectors
         self._sector_start_indeces = [0]*self._n_sectors
@@ -396,6 +402,18 @@ class Vessel():
             sector_feasible_distances = np.array(list(
                 map(lambda x: _feasibility_pooling(x, self._feasibility_width, self._d_sensor_angle), sector_dist_measurements)
             ))
+            
+            # # Performing max pooling
+            # sector_feasible_distances = np.array(list(
+            #     map(lambda x: _max_pooling(x), sector_dist_measurements)
+            # ))
+                        
+            # # Performing min pooling
+            # sector_feasible_distances = np.array(list(
+            #     map(lambda x: _min_pooling(x), sector_dist_measurements)
+            # ))
+            
+            
 
             # Calculating feasible closeness
             sector_closenesses = self._get_closeness(sector_feasible_distances)

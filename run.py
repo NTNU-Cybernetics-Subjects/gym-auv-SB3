@@ -13,6 +13,7 @@ import gym
 import gym_auv
 import gym_auv.reporting
 import multiprocessing
+import csv
 
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, SubprocVecEnv, VecFrameStack
@@ -608,8 +609,8 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 100000                      # changed from 10000000 timesteps to test training
-        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
+        total_timesteps = 10000000                      # changed from 10000000 timesteps to test training
+        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
@@ -645,6 +646,16 @@ def main(args):
                                                    widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
 
                 self.vec_env = env
+                self.num_envs = env.num_envs
+                
+                self.reward_accumulator = [[] for _ in range(self.num_envs)]  # List of lists to track rewards per environment
+                self.episode_rewards = []  # to log total reward per episode
+                
+                 # Prepare CSV file
+                self.csv_file = os.path.join(self.log_dir, "episode_rewards.csv")
+                with open(self.csv_file, mode='w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['Episode', 'Total Reward'])
 
                 #class Struct(object): pass
                 #self.report = Struct()
@@ -671,12 +682,35 @@ def main(args):
                 done_array = np.array(
                     self.locals.get("done") if self.locals.get("done") is not None else self.locals.get("dones"))
 
-
+                rewards = self.locals.get("rewards")
+                
+                if rewards is not None:
+                    for i, reward in enumerate(rewards):
+                        self.reward_accumulator[i].append(reward)
+                    
+                    
                 if np.sum(done_array).item() > 0:
                     self.n_episodes += np.sum(done_array).item()
                     self.logger.record('time/episodes', self.n_episodes)
                     # Tensorboard logging
                     #self.vec_env.env_method('store_statistics_to_file', path=figure_folder)
+                    
+                    # Log total reward per episode
+                    for i, done in enumerate(done_array):
+                        if done:
+                            # total_episode_reward = sum([step_reward[i] for step_reward in self.reward_accumulator])
+                            total_episode_reward = sum(self.reward_accumulator[i])
+                            print(f"Total episode reward: {total_episode_reward}")
+                            self.episode_rewards.append(total_episode_reward)
+                            self.logger.record('reward/episode_reward', total_episode_reward)
+                            
+                            # Append to CSV
+                            with open(self.csv_file, mode='a', newline='') as f:
+                                writer = csv.writer(f)
+                                writer.writerow([self.n_episodes, total_episode_reward])
+                            
+                            # Clear accumulated rewards for the next episode
+                            self.reward_accumulator[i] = []
 
                     # Fetch stats from history attribute and log to tensorboard
                     stats = np.array(self.vec_env.get_attr("history"))[done_array]
@@ -803,8 +837,10 @@ def main(args):
             return env, active_env
 
         failed_tests = []
+        reached_goal = []
         def run_test(id, reset=True, report_dir=figure_folder, scenario=None, max_t_steps=None, env=None, active_env=None):
             nonlocal failed_tests
+            nonlocal reached_goal
 
             if env is None or active_env is None:
                 env, active_env = create_test_env(video_name_prefix=args.env + '_'  + id)
@@ -857,6 +893,10 @@ def main(args):
                     if info[0]['collision']:
                         failed_tests.append(id)
                         print("\nCOLLISION IN", id)
+                        
+                    if info[0]['reached_goal']:
+                        reached_goal.append(id)
+                        print("\nREACHED GOAL IN", id)
 
             env.close()
 
@@ -927,7 +967,8 @@ def main(args):
                 env, active_env = create_test_env(video_name_prefix=args.env)
                 for episode in range(args.episodes):
                     run_test('ep' + str(episode), env=env, active_env=active_env, max_t_steps=10000)
-                print("{:0.2f}% successfull episodes".format(100*(1-len(failed_tests)/args.episodes)))
+                print("{:0.2f}% episodes without crashing".format(100*(1-len(failed_tests)/args.episodes)))
+                print("{:0.2f}% of episodes reached goal".format(100*(len(reached_goal)/args.episodes)))
         if args.video and active_env:
             active_env.close()
 

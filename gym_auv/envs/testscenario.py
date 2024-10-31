@@ -50,7 +50,7 @@ class TestScenario1(BaseEnvironment):
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
 
-        ##self.obstacles = [] # Thomas bugfix maybe? If _generate is called many times, self.obstacles may become huge.
+        #self.obstacles = [] # Thomas bugfix maybe? If _generate is called many times, self.obstacles may become huge.
 
         obst_arclength = 30
         for o in range(20):

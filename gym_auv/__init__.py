@@ -7,11 +7,22 @@ def observe_obstacle_fun(t, dist):
 def return_true_fun(t, dist):
     return True
 
-def sector_partition_fun(env, isensor, c=0.1):
+def sector_partition_fun_log(env, isensor, c=0.1):
     a = env.config["n_sensors_per_sector"]*env.config["n_sectors"]
     b = env.config["n_sectors"]
     sigma = lambda x: b / (1 + np.exp((-x + a / 2) / (c * a)))
     return int(np.floor(sigma(isensor) - sigma(0)))
+
+def sector_partition_fun_linear(env, isensor):
+    n_sensors = env.config["n_sensors_per_sector"] * env.config["n_sectors"]
+    n_sectors = env.config["n_sectors"]
+    sensors_per_sector = env.config["n_sensors_per_sector"]
+    
+    # Determine the sector by dividing the sensor index by the number of sensors per sector
+    sector = int(isensor // sensors_per_sector)
+    
+    # Ensure the sector does not exceed the maximum index (n_sectors - 1)
+    return min(sector, n_sectors - 1)
 
 DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
@@ -26,29 +37,27 @@ DEFAULT_CONFIG = {
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
     # ---- VESSEL ---- #
-    'thrust_max_auv': 2.0,                          # Maximum thrust of the AUV [N]
-    'moment_max_auv': 0.15,                         # maximum moment applied to the AUV [Nm]
-    "vessel_width": 1.255,                          # Width of vessel [m]
+    "vessel_width": 0.910,                          # Width of vessel [m]
     "feasibility_width_multiplier": 5.0,            # Multiplier for vessel width in feasibility pooling algorithm 
-    "look_ahead_distance": 150,                     # Path look-ahead distance for vessel [m]
+    "look_ahead_distance": 50,                     # Path look-ahead distance for vessel [m]
     'render_distance': 300,                         # 3D rendering render distance [m]
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
     "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
     "n_sectors": 9,                                 # Number of sensor sectors
-    "sector_partition_fun": sector_partition_fun,   # Function that returns corresponding sector for a given sensor index
+    "sector_partition_fun": sector_partition_fun_log,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)
-    "sensor_range": 150.0,                          # Range of rangefinder sensors [m]
+    "sensor_range": 50.0,                          # Range of rangefinder sensors [m]
     "sensor_log_transform": True,                   # Whether to use a log. transform when calculating closeness                 #
     "observe_obstacle_fun": observe_obstacle_fun,   # Function that outputs whether an obstacle should be observed (True),
                                                     # or if a virtual obstacle based on the latest reading should be used (False).
                                                     # This represents a trade-off between sensor accuracy and computation speed.
                                                     # With real-world terrain, using virtual obstacles is critical for performance.
     # ---- JAN ADDING BLUEBOAT-SPESIFIC THINGS --- #
-    'thrusters_max_forward': 55.21, #119.6,                # Read from Blue Robotics data on one M200 Motor with weedless propeller(5.63 KGF on website) --> [N]
-    'thrusters_max_backwards': 27.56, #66.69,              # Read from Blue Robotics data on one M200 Motor with weedless propeller(2.81 KGF on website) --> [N]
-    'lever_arm_left_propeller': -0.285, # - 0.395            # Lever arm of propellers from centerline, MUST BE MEASURED, THIS IS FROM PONTOON TO PONTOON  [m]
-    'lever_arm_right_propeller': 0.285, # 0.395           
+    'thrusters_max_forward': 55.21,# 40 in documentation                # Read from Blue Robotics data on one M200 Motor with weedless propeller(5.63 KGF on website) --> [N]
+    'thrusters_max_backwards': 27.56,               # Read from Blue Robotics data on one M200 Motor with weedless propeller(2.81 KGF on website) --> [N]
+    'lever_arm_left_propeller': -0.285,             # Lever arm of propellers from centerline  [m]
+    'lever_arm_right_propeller': 0.285,            
     
     # ---- RENDERING ---- #
     "show_indicators": True,                        # Whether to show debug information on screen during 2d rendering.
