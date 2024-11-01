@@ -212,7 +212,7 @@ class Trondheim(RealWorldEnv):
 
     def _generate(self):
         self.path = Path([[6945-self.x0, 6329-self.x0], [4254-self.y0, 5614-self.y0]])
-        self.obstacle_perimeters = np.load('resources/obstacles_trondheim.npy')
+        self.obstacle_perimeters = np.load('resources/obstacles_trondheim.npy') # allow_pickle=True
         self.all_terrain = np.load(TERRAIN_DATA_PATH)[self.x0:8000, self.y0:6900]/7.5
         super()._generate()
 

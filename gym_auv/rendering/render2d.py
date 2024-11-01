@@ -546,7 +546,7 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.lambda_text_field.text = "Speed:"
     env._viewer2d.lambda_text_field.draw()
-    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10)
+    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10) # why *10? 
     env._viewer2d.lambda_value_field.draw()
 
     env._viewer2d.eta_text_field.text = "CTE:"

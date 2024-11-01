@@ -5,6 +5,7 @@ import numpy as np
 import numpy.linalg as linalg
 from itertools import islice, chain, repeat
 import shapely.geometry, shapely.errors, shapely.strtree, shapely.ops, shapely.prepared
+from scipy.integrate import solve_ivp
 
 import gym_auv.utils.constants as const
 import gym_auv.utils.geomutils as geom
@@ -71,7 +72,7 @@ def _feasibility_pooling(x, width, theta):
                 opening_span = 0
                 opening_start = -theta*(N_sensors-1)/2 + isensor*theta
 
-        if not found_opening: 
+        if not found_opening:
             return max(0, x[idx])
 
     return max(0, np.max(x))
@@ -136,7 +137,7 @@ class Vessel():
             The distance from the center of the AUV to its edge
             in meters.
         """
-        
+
         self.config = config
 
         # Initializing private attributes
@@ -214,7 +215,7 @@ class Vessel():
         """Returns an array holding the path of the AUV in cartesian
         coordinates."""
         return self._prev_states[:, 0:2]
-    
+
     @property
     def heading_taken(self) -> np.ndarray:
         """Returns an array holding the heading of the AUV for all timesteps."""
@@ -298,13 +299,20 @@ class Vessel():
 
         Parameters
         ----------
-        action : np.ndarray[thrust_input, torque_input]
+        action : np.ndarray[thrust_left_motor, thrust_right_motor]
         """
-        self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
-        w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        
-        self._state = q
+        self._input = np.array([self._thrust_left_motor(action[0]), self._thrust_right_motor(action[1])])
+        # # ODE45 integration, does noe work for stiff systems
+        # w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
+        # self._state = q
+        # self._state[2] = geom.princip(self._state[2])
+
+        # Scipy for integration
+        sol = solve_ivp(lambda t, state: self._state_dot(t, state), [0, self.config["t_step_size"]], self._state, method='BDF')
+        self._state = sol.y[:,-1]
         self._state[2] = geom.princip(self._state[2])
+        
+        # print(f"State from vessel step: {self._state}")
 
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
@@ -314,7 +322,7 @@ class Vessel():
     def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
         """
         Simulates the sensor suite and returns observation arrays of the environment.
-        
+
         Returns
         -------
         sector_closenesses : np.ndarray
@@ -354,7 +362,7 @@ class Vessel():
                     self._last_sensor_dist_measurements[i],
                     self._last_sensor_speed_measurements[i],
                     True
-                ), 
+                ),
                 range(self._n_sensors)
             ))
             sensor_dist_measurements, sensor_speed_measurements, sensor_blocked_arr = zip(*sensor_output_arrs)
@@ -418,7 +426,7 @@ class Vessel():
         """
         Calculates and returns navigation states representing the vessel's attitude
         with respect to the desired path.
-        
+
         Returns
         -------
         navigation_states : np.ndarray
@@ -435,7 +443,7 @@ class Vessel():
 
         # Calculating tangential path direction at look-ahead point
         target_arclength = min(path.length, vessel_arclength + self.config["look_ahead_distance"])
-        look_ahead_path_direction = path.get_direction(target_arclength) 
+        look_ahead_path_direction = path.get_direction(target_arclength)
         look_ahead_heading_error = float(geom.princip(look_ahead_path_direction - self.heading))
 
         # Calculating vector difference between look-ahead point and vessel position
@@ -486,20 +494,46 @@ class Vessel():
             'reached_goal': self._reached_goal
         }
 
-    def _state_dot(self, state):
-        psi = state[2]
-        nu = state[3:]
+    # def _state_dot(self, state):
+    #     psi = state[2]
+    #     nu = state[3:]
 
-        tau = np.array([self._input[0], 0, self._input[1]])
+    #     tau = np.array([self._input[0] + self._input[1], 0,
+    #                     self.config['lever_arm_left_propeller']*self._input[0]
+    #                     + self.config['lever_arm_right_propeller']*self._input[1]])      # Had minus at both propeller inputs here,
+    #                                                                                      # but it seemed to go the wrong way
 
-        eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
-        nu_dot = const.M_inv.dot(
-            tau
-            #- const.D.dot(nu)
-            - const.N(nu).dot(nu)
-        )
-        state_dot = np.concatenate([eta_dot, nu_dot])
-        return state_dot
+    #     eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
+    #     nu_dot = const.M_inv.dot(
+    #         tau
+    #         # - const.D(nu).dot(nu)
+    #         - const.N(nu).dot(nu)
+    #     )
+    #     state_dot = np.concatenate([eta_dot, nu_dot])
+    #     print(f"state_dot: {state_dot}")
+    #     return state_dot
+    
+    
+    # Made this outside the Vessel-class because of problems passing
+    # self when used in solve_ivp(...)
+    def _state_dot(self, t, state):
+                psi = state[2]
+                nu = state[3:]
+
+                tau = np.array([self._input[0] + self._input[1], 0,
+                                - self.config['lever_arm_left_propeller']*self._input[0]
+                                - self.config['lever_arm_right_propeller']*self._input[1]]) # Math is now correct,
+                                                                                            # but the boat turns the wrong way
+
+                eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
+                nu_dot = const.M_inv.dot(
+                    tau
+                    # - const.D(nu).dot(nu)
+                    - const.N(nu).dot(nu)
+                )
+                state_dot = np.concatenate([eta_dot, nu_dot])
+                return state_dot
+
 
     def _thrust_surge(self, surge):
         surge = np.clip(surge, 0, 1)
@@ -508,3 +542,14 @@ class Vessel():
     def _moment_steer(self, steer):
         steer = np.clip(steer, -1, 1)
         return steer*self.config['moment_max_auv']
+
+    # ---- JAN ADDING MODEL WITH DIRECT THRUSTER INPUTS --- #
+
+    def _thrust_left_motor(self, thrust_left):
+        thrust_left = np.clip(thrust_left, 0, 1)*self.config['thrusters_max_forward']
+        return thrust_left
+
+
+    def _thrust_right_motor(self, thrust_right):
+        thrust_right = np.clip(thrust_right, 0, 1)*self.config['thrusters_max_forward']
+        return thrust_right
