@@ -28,7 +28,7 @@ DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
     "min_cumulative_reward": -2000,                 # Minimum cumulative reward received before episode ends
     "max_timesteps": 10000,                         # Maximum amount of timesteps before episode ends
-    "min_goal_distance": 5,                         # Minimum aboslute distance to the goal position before episode ends
+    "min_goal_distance": 25,                         # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
     # ---- SIMULATION ---- #
@@ -44,8 +44,10 @@ DEFAULT_CONFIG = {
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
     "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
-    "n_sectors": 9,                                 # Number of sensor sectors
-    "sector_partition_fun": sector_partition_fun_log,   # Function that returns corresponding sector for a given sensor index
+    "n_sectors": 9,                                # Number of sensor sectors, when changing this, also change features_extractor_kwargs = dict(features_dim=ne_number) in run 
+                                                    # I am just using the method: change "n_sectors" --> run --> see matrice dims from log --> use correct number
+                                                    # Must also correspond to the agent when testing
+    "sector_partition_fun": sector_partition_fun_linear,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)
     "sensor_range": 50.0,                          # Range of rangefinder sensors [m]
     "sensor_log_transform": True,                   # Whether to use a log. transform when calculating closeness                 #

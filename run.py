@@ -396,7 +396,7 @@ def main(args):
                     #policy_kwargs = dict(net_arch = [dict(vf=layers, pi=layers)])
                     policy_kwargs = dict(
                         features_extractor_class = PerceptionNavigationExtractor,
-                        features_extractor_kwargs = dict(features_dim=12),
+                        features_extractor_kwargs = dict(features_dim=12), # Change when changing number of sctors in _init_.py
                         #net_arch = [128, 64, dict(pi=[32]), dict(vf=[32])]
                         #net_arch=[dict(pi=[64, 64], vf=[64, 64])]
                         net_arch=[dict(pi=[128, 64, 32], vf=[128, 64, 32])]
@@ -638,6 +638,7 @@ def main(args):
                 self.save_stats_freq = save_stats_freq
                 self.record_agent_freq = record_agent_freq
                 self.save_agent_freq = total_timesteps // 100
+                self.save_time_freq = total_timesteps // 10000
                 self.log_dir = log_dir
                 self.save_path = os.path.join(log_dir, 'agents')
                 self.n_episodes = 0
@@ -651,11 +652,19 @@ def main(args):
                 self.reward_accumulator = [[] for _ in range(self.num_envs)]  # List of lists to track rewards per environment
                 self.episode_rewards = []  # to log total reward per episode
                 
-                 # Prepare CSV file
-                self.csv_file = os.path.join(self.log_dir, "episode_rewards.csv")
-                with open(self.csv_file, mode='w', newline='') as f:
+                self.time = time()
+                self._epoch_nr = 0
+                
+                 # Prepare CSV files
+                self.csv_file_episode_rewards = os.path.join(self.log_dir, "episode_rewards.csv")
+                with open(self.csv_file_episode_rewards, mode='w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(['Episode', 'Total Reward'])
+                    
+                self.csv_file_epoch_times = os.path.join(self.log_dir, "epoch_times.csv")
+                with open(self.csv_file_epoch_times, mode='w', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(['Epoch Nr', 'Total Time', 'Timesteps Nr'])
 
                 #class Struct(object): pass
                 #self.report = Struct()
@@ -687,6 +696,19 @@ def main(args):
                 if rewards is not None:
                     for i, reward in enumerate(rewards):
                         self.reward_accumulator[i].append(reward)
+                        
+                if self.num_timesteps % self.save_time_freq == 0:
+                    new_time = time()
+                    self._epoch_nr += 1
+                    epoch_nr = self._epoch_nr
+                    time_prev_epoch = new_time - self.time
+                    # print("Saving time after", self.num_timesteps, f"timesteps, time is: {time_prev_epoch}")
+                    # Append to CSV
+                    with open(self.csv_file_epoch_times, mode='a', newline='') as f:
+                        writer = csv.writer(f)
+                        writer.writerow([epoch_nr, time_prev_epoch, self.num_timesteps])
+                    self.time = time()
+                    
                     
                     
                 if np.sum(done_array).item() > 0:
@@ -700,12 +722,12 @@ def main(args):
                         if done:
                             # total_episode_reward = sum([step_reward[i] for step_reward in self.reward_accumulator])
                             total_episode_reward = sum(self.reward_accumulator[i])
-                            print(f"Total episode reward: {total_episode_reward}")
+                            # print(f"Total episode reward: {total_episode_reward}")
                             self.episode_rewards.append(total_episode_reward)
                             self.logger.record('reward/episode_reward', total_episode_reward)
                             
                             # Append to CSV
-                            with open(self.csv_file, mode='a', newline='') as f:
+                            with open(self.csv_file_episode_rewards, mode='a', newline='') as f:
                                 writer = csv.writer(f)
                                 writer.writerow([self.n_episodes, total_episode_reward])
                             
@@ -737,7 +759,7 @@ def main(args):
                 #
                 #    gym_auv.reporting.report(self.report, report_dir=figure_folder)
 
-                if self.num_timesteps % self.save_agent_freq == 0:
+                if self.num_timesteps % self.save_time_freq == 0:
                     print("Saving agent after", self.num_timesteps, "timesteps")
                     agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
                     self.model.save(agent_filepath)

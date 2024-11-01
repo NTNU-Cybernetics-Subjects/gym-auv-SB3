@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import argparse
 import os
 
-# File for plotting performance data when testing different perception vectors
+# File for plotting performance data
 
 
 import os
@@ -75,15 +75,62 @@ def plot_rewards_per_episode(args, window_size=50, save_plot=False, save_path=No
             save_path = os.path.join(os.path.dirname(args.episode_reward_path), 'episode_rewards_plot.png')
         plt.savefig(save_path)
         print(f"Plot saved to {save_path}")
+        
+def plot_time_spent(args, save_plot=False, save_path=None):
+      # Verify that the CSV file exists
+    if not os.path.isfile(args.epoch_times_path):
+        print(f"Error: The file '{args.epoch_times_path}' does not exist.")
+        return
 
-def main(args):
-    plot_rewards_per_episode(args)
+    # Load Episode Rewards
+    try:
+        epoch_times = pd.read_csv(args.epoch_times_path)
+    except Exception as e:
+        print(f"Error reading the CSV file: {e}")
+        return
 
+    # Check if the required columns exist
+    expected_columns = ['Epoch Nr', 'Total Time', 'Timesteps in Epoch']
+    if not all(column in epoch_times.columns for column in expected_columns):
+        print(f"Error: CSV file must contain the columns: {expected_columns}")
+        print(f"Found columns: {expected_columns.columns.tolist()}")
+        return
+        # Sort the DataFrame by 'Epoch Nr' to ensure correct plotting order
+    epoch_times = epoch_times.sort_values('Epoch Nr')
+
+    # Extract x and y data
+    x = epoch_times['Timesteps in Epoch']
+    y = epoch_times['Total Time']
+
+    # Plotting
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, y, marker='o', linestyle='-', color='green', label='Total Time per Epoch')
+
+    # Customize the plot
+    plt.xlabel('Timesteps in Epoch', fontsize=14)
+    plt.ylabel('Total Time (seconds)', fontsize=14)
+    plt.title('Total Time vs Timesteps in Epoch', fontsize=16)
+    plt.legend(fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    # Display the plot
+    plt.show()
+
+    # Save the plot if required
+    if save_plot:
+        if save_path is None:
+            # Default save path: same directory as CSV file with a default filename
+            save_path = os.path.join(os.path.dirname(args.epoch_times_path), 'epoch_times_plot.png')
+        plt.savefig(save_path)
+        print(f"Plot saved to {save_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plot Episode Rewards with Moving Average from a CSV file.')
     parser.add_argument('--episode_reward_path', type=str, required=True,
                         help='Path to the CSV file containing episode rewards.')
+    parser.add_argument('--epoch_times_path', type=str, required=True,
+                        help='Path to the CSV file containing epoch times.')
     parser.add_argument('--window_size', type=int, default=50,
                         help='Number of episodes to include in the moving average window. Default is 50.')
     parser.add_argument('--save_plot', action='store_true',
@@ -93,4 +140,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     plot_rewards_per_episode(args, window_size=args.window_size, save_plot=args.save_plot, save_path=args.save_path)
+    plot_time_spent(args, save_plot=args.save_plot, save_path=args.save_path)
 

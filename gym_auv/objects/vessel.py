@@ -477,7 +477,8 @@ class Vessel():
 
         # Deciding if vessel has reached the goal
         goal_distance = linalg.norm(path.end - self.position)
-        reached_goal = goal_distance <= self.config["min_goal_distance"] or progress >= self.config["min_path_progress"]
+        reached_goal = goal_distance <= self.config["min_goal_distance"] or progress >= self.config["min_path_progress"] # progress here is only how far along the direction we have come...
+                                                                                                                         # this means that we are concidered in gola as long as we drive "past" the goal... 
         self._reached_goal = reached_goal
 
         # Concatenating states
