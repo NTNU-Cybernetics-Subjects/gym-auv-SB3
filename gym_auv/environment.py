@@ -60,6 +60,9 @@ class BaseEnvironment(gym.Env, ABC):
         self.cumulative_reward = 0
         self.rewarder = None
 
+        # NOTE: 
+        self.dock = None
+
         self.history = dict.fromkeys(
             [
                 "cross_track_error",
