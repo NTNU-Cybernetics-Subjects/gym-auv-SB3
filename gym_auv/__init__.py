@@ -158,6 +158,11 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:Env4',
         'config': MOVING_CONFIG
     },
+    ##### Docking Enironments #####
+    'DockingTestScenario-v0': {
+            'entry_point': 'gym_auv.envs:DockingTestScenario0',
+            'config': DEFAULT_CONFIG
+    },
 }
 
 for scenario in SCENARIOS:
