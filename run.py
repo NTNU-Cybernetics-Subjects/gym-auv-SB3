@@ -23,6 +23,7 @@ from sklearn.model_selection import ParameterGrid
 from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, BaseCallback, EvalCallback
 import queue
 from collections import deque
+from datetime import datetime
 
 ### HANNAH
 #from gym_auv.utils.radarCNN import LidarCNN_pretrained, PerceptionNavigationExtractor
@@ -241,7 +242,10 @@ def main(args):
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
-    EXPERIMENT_ID = str(int(time())) + args.algo.lower()
+    timestamp_now = datetime.now().strftime("%d-%m-%Y__%H:%M:%S")
+    id = str(int(time()))
+    # EXPERIMENT_ID = str(int(time())) + args.algo.lower()
+    EXPERIMENT_ID = f"{id}__{timestamp_now}__{args.algo.lower()}"
     model = {
         'ppo': PPO,
         'ddpg': DDPG,
@@ -606,8 +610,8 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 100000                      # changed from 10000000 timesteps to test training
-        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
+        total_timesteps = 1000000                      # changed from 10000000 timesteps to test training
+        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.

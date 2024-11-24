@@ -215,7 +215,7 @@ class ColavRewarder(BaseRewarder):
         if collision:
             reward = self.params["collision"]*(1-self.params["lambda"])
             return reward
-         
+
         reward = 0
 
         # Extracting navigation states
@@ -225,7 +225,7 @@ class ColavRewarder(BaseRewarder):
         # Calculating path following reward component
         cross_track_performance = np.exp(-self.params['gamma_y_e']*np.abs(cross_track_error))
         path_reward = (1 + np.cos(heading_error)*self._vessel.speed/self._vessel.max_speed)*(1 + cross_track_performance) - 1
-        
+
         # Calculating obstacle avoidance reward component
         closeness_penalty_num = 0
         closeness_penalty_den = 0
@@ -246,7 +246,7 @@ class ColavRewarder(BaseRewarder):
 
         # Calculating living penalty
         living_penalty = self.params['lambda']*(2*self.params["neutral_speed"]+1) + self.params["eta"]*self.params["neutral_speed"]
-        
+
         # Calculating total reward
         reward = self.params['lambda']*path_reward + \
             (1-self.params['lambda'])*closeness_reward - \
@@ -395,3 +395,117 @@ class ColregRewarder(BaseRewarder):
             reward *= self.params['negative_multiplier']
 
         return reward
+
+# FIXME:
+class DockingRewarder(BaseRewarder):
+
+    def __init__(self, vessel, test_mode):
+        super().__init__(vessel, test_mode)
+        self.params['gamma_theta'] = 10.0
+        self.params['gamma_x'] = 0.1
+        self.params['gamma_v_y'] = 1.0
+        self.params['gamma_y_e'] = 5.0
+        self.params['penalty_yawrate'] = 0.0  # not used
+        self.params['penalty_torque_change'] = 0.0
+        self.params['cruise_speed'] = 0.1
+        self.params['neutral_speed'] = 0.05
+        self.params['negative_multiplier'] = 2.0
+        self.params['collision'] = -1000.0
+        self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
+        self.params['eta'] = 0  # _sample_eta()
+
+    N_INSIGHTS = 0
+
+    def insight(self):
+        return np.array([])
+        # return np.array([np.log10(self.params['lambda'])])
+
+    def calculate(self):
+        latest_data = self._vessel.req_latest_data()
+        nav_states = latest_data['navigation']
+        collision = latest_data['collision']
+
+        if collision:
+            reward = self.params["collision"] # * (1 - self.params["lambda"])  # -5000
+            return reward
+
+        reward = 0
+
+        heading_error_dock_angle = nav_states['heading_error']
+        boat_to_dock_heading_error = nav_states['boat_to_dock_heading_error']
+        goal_distance = nav_states["goal_distance"]
+        docking_in_progress = nav_states['docking_active']
+
+        k = 0.01
+        closure_reward = np.e ** (-goal_distance * k) * self._vessel.speed/(self._vessel.max_speed)
+
+        # heading_reward = 1 - np.cos(heading_error)
+
+        docking_reward = 0.
+        if docking_in_progress:
+            docking_reward = 2.
+
+        living_penalty = 1
+        reward = closure_reward + docking_reward - living_penalty
+
+        return reward
+
+
+# FIXME:
+class DockingRewarderAdvanced(BaseRewarder):
+
+    def __init__(self, vessel, test_mode):
+        super().__init__(vessel, test_mode)
+        self.params['gamma_theta'] = 10.0
+        self.params['gamma_x'] = 0.1
+        self.params['gamma_v_y'] = 1.0
+        self.params['gamma_y_e'] = 5.0
+        self.params['penalty_yawrate'] = 0.0  # not used
+        self.params['penalty_torque_change'] = 0.0
+        self.params['cruise_speed'] = 0.1
+        self.params['neutral_speed'] = 0.05
+        self.params['negative_multiplier'] = 2.0
+        self.params['collision'] = -1000.0
+        self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
+        self.params['eta'] = 0  # _sample_eta()
+
+    N_INSIGHTS = 0
+
+    def insight(self):
+        return np.array([])
+        # return np.array([np.log10(self.params['lambda'])])
+
+    def calculate(self):
+        latest_data = self._vessel.req_latest_data()
+        nav_states = latest_data['navigation']
+        collision = latest_data['collision']
+
+        if collision:
+            reward = self.params["collision"] # * (1 - self.params["lambda"])  # -5000
+            return reward
+
+        reward = 0
+
+        heading_error_dock_angle = nav_states['heading_error']
+        boat_to_dock_heading_error = nav_states['boat_to_dock_heading_error']
+        goal_distance = nav_states["goal_distance"]
+        docking_in_progress = nav_states['docking_active']
+
+        angle_weight = 0.6
+        dock_angle_reward = angle_weight * np.cos(heading_error_dock_angle)
+        boat_to_dock_heading_reward = (1-angle_weight)*np.cos(boat_to_dock_heading_error)
+        
+        full_heading_reward = (dock_angle_reward + boat_to_dock_heading_reward)*self._vessel.speed/self._vessel.max_speed # 1 if heading towards the dock in right angle, -> 0 otherwise
+
+
+        docking_reward = 0.
+        if docking_in_progress:
+            docking_reward = 5.
+
+        living_penalty = 1
+        reward = full_heading_reward + docking_reward - living_penalty
+
+        return reward
+
+
+

@@ -78,8 +78,8 @@ class Viewer2D(object):
         self.onetime_geoms = []
         self.fixed_geoms = []
         self.transform = Transform()
-        # self.camera_zoom = 1.5
-        self.camera_zoom = 4.5
+        self.camera_zoom = 1.5
+        # self.camera_zoom = 4.5
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -484,18 +484,21 @@ def _render_obstacles(env):
 
 # FIXME:
 def _render_dock(env):
-    c = (0.9,0,0)
+    red = (0.9,0,0)
+    green = (0, 0.9, 0)
+ 
     if isinstance(env.dock, RectangularDock):
-        print("Drawing dock")
-        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=c)
+        # print("Drawing dock")
+        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
 
     # print(f"using {list(env.dock.boundary.exterior.coords)} to draw dock")
     if isinstance(env.dock, TetrisDock):
         bad_region = env.dock.boundary.exterior.coords
-        env._viewer2d.draw_shape(vertices=list(bad_region) , color=c)
+        # print(f"Drawing bad docking region: {list( bad_region )}")
+        env._viewer2d.draw_shape(vertices=list(bad_region) , color=red)
 
         good_region = env.dock.get_good_zone().exterior.coords
-        env._viewer2d.draw_shape(vertices=list(good_region), color=(0, 0.9, 0))
+        env._viewer2d.draw_shape(vertices=list(good_region), color=green)
  
 
 def _render_tiles(env, win):
@@ -568,10 +571,11 @@ def _render_indicators(env, W, H):
     env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10) # why *10? 
     env._viewer2d.lambda_value_field.draw()
 
-    env._viewer2d.eta_text_field.text = "CTE:"
-    env._viewer2d.eta_text_field.draw()
-    env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
-    env._viewer2d.eta_value_field.draw()
+    if not env.dock:
+        env._viewer2d.eta_text_field.text = "CTE:"
+        env._viewer2d.eta_text_field.draw()
+        env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
+        env._viewer2d.eta_value_field.draw()
 
     env._viewer2d.input_text_field.text = "Input:"
     env._viewer2d.input_text_field.draw()
@@ -593,14 +597,16 @@ def render_env(env, mode):
         #_render_interceptions(env)
         if env.path is not None:
             _render_path(env)
+
+        if env.dock is not None:
+            _render_dock(env)
+
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)
-        if env.dock is not None:
-            _render_dock(env)
 
         #_render_interceptions(env)
 

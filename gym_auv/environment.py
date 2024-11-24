@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from gym.utils import seeding
+from objects import dock
 
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.rewarder import ColavRewarder, PathRewarder
@@ -210,9 +211,9 @@ class BaseEnvironment(gym.Env, ABC):
         obs : np.ndarray
             The observation of the environment.
         """
-        navigation_states = self.vessel.navigate(self.path)
+        navigation_states = self.vessel.navigate(self.path, self.dock)
         if bool(self.config["sensing"]):
-            perception_states = self.vessel.perceive(self.obstacles)
+            perception_states = self.vessel.perceive(self.obstacles, dock=self.dock)
         else:
             perception_states = []
 
@@ -354,8 +355,7 @@ class BaseEnvironment(gym.Env, ABC):
         # print('Saving latest episode with save_history = ' + str(save_history))
         self.last_episode = {
             "path": self.path(np.linspace(0, self.path.length, 1000))
-            if self.path is not None
-            else None,
+            if self.path is not None else None,
             "path_taken": np.array(self.vessel.path_taken),
             "obstacles": np.array(self.obstacles),
         }
@@ -370,7 +370,7 @@ class BaseEnvironment(gym.Env, ABC):
                 "timesteps": self.t_step,
                 "duration": self.t_step * self.config["t_step_size"],
                 "progress": self.progress,
-                "pathlength": self.path.length,
+                "pathlength": self.path.length if self.path is not None else 0,
             }
             for key in self.history.keys():
                 self.history[key] = np.append(self.history[key], stats[key])

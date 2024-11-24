@@ -68,6 +68,9 @@ REALWORLD_CONFIG["render_distance"] = 300#2000
 #REALWORLD_CONFIG["observe_frequency"] = 0.1  # HALVOR CREATED; THOMAS COMMENTED
 #REALWORLD_CONFIG["sensor_frequency"] = 0.5   # HALVOR CREATED; THOMAS COMMENTED
 
+DOCKING_CONFIG = DEFAULT_CONFIG.copy()
+DOCKING_CONFIG['min_goal_distance'] = 2
+
 SCENARIOS = {
     'TestScenario0-v0': {   
         'entry_point': 'gym_auv.envs:TestScenario0',

@@ -225,8 +225,11 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
     #print('Plotting with local = ' + str(local))
     #_, trajectories = read_hdf5_report(report_dir)
     trajectories = env.last_episode
-
+ 
     path =  trajectories['path']
+    if not path: # FIXME: does not work without a path, this is not optimal
+        return
+    # print(f"From plot_trajectory: {path}")
     path_taken = trajectories['path_taken']
     obstacles = trajectories['obstacles']
 
@@ -251,6 +254,11 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
         axis_min_y = env.vessel.position[1] - size
         axis_max_y = env.vessel.position[1] + size 
 
+    # elif env.dock:
+    #     axis_min_x = path_taken[0, :].min() - 200
+    #     axis_max_x = path_taken[0, :].max() + 200
+    #     axis_min_y = path_taken[1, :].min() - 200
+    #     axis_max_y = path_taken[1, :].max() + 200
     else:
         axis_min_x = path[0, :].min() - 200
         axis_max_x = path[0, :].max() + 200

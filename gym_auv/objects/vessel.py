@@ -4,6 +4,7 @@ This module implements an AUV that is simulated in the horizontal plane.
 import numpy as np
 import numpy.linalg as linalg
 from itertools import islice, chain, repeat
+from objects.dock import BaseDock
 import shapely.geometry, shapely.errors, shapely.strtree, shapely.ops, shapely.prepared
 from scipy.integrate import solve_ivp
 
@@ -118,7 +119,11 @@ class Vessel():
         'yaw_rate',
         'look_ahead_heading_error',
         'heading_error',
-        'cross_track_error'
+        'cross_track_error',
+
+        'goal_distance',                # Vegar
+        'docking_active',               # Vegar
+        'boat_to_dock_heading_error'    # Vegar
     ]
 
     def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
@@ -131,7 +136,7 @@ class Vessel():
             Dictionary containing the configuration parameters for
             the vessel
         init_state : np.ndarray
-            The initial attitude of the veHssel [x, y, psi], where
+            The initial attitude of the vessel [x, y, psi], where
             psi is the initial heading of the AUV.
         width : float
             The distance from the center of the AUV to its edge
@@ -155,6 +160,10 @@ class Vessel():
         self._sensor_interval = max(1, int(1/self.config["sensor_frequency"]))
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
+
+        # -- DOCKING --
+        self._docking_step_time = 0
+        self._docking_prosess_active = False
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -293,6 +302,10 @@ class Vessel():
         self._perceive_counter = 0
         self._nearby_obstacles = []
 
+        # -- DOCKING ---
+        self._docking_step_time = 0
+        self._docking_prosess_active = False
+
     def step(self, action:list) -> None:
         """
         Simulates the vessel one step forward after applying the given action.
@@ -319,14 +332,14 @@ class Vessel():
 
         self._step_counter += 1
 
-    def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
+    def perceive(self, obstacles:list, dock=None) -> np.ndarray:
         """
         Simulates the sensor suite and returns observation arrays of the environment.
 
         Returns
         -------
         sector_closenesses : np.ndarray
-        sector_velocities : np.ndarray
+        # sector_velocities : np.ndarray
         """
 
         # Initializing variables
@@ -338,6 +351,12 @@ class Vessel():
             self._nearby_obstacles = list(filter(
                 lambda obst: float(p0_point.distance(obst.boundary)) - self._width < sensor_range, obstacles
             ))
+            # -- NOTE: Add the bad zone of dock as obstacle --
+            if dock:
+                self._nearby_obstacles.append(dock) if float(p0_point.distance(dock.boundary)) - self._width < sensor_range else None
+                # dock_obs = float(p0_point.distance(dock.boundary)) - self._width < sensor_range
+                # print(dock_obs)
+                # self._nearby_obstacles.append(float(p0_point.distance(dock.boundary)) - self._width < sensor_range)
 
         if not self._nearby_obstacles:
             self._last_sensor_dist_measurements = np.ones((self._n_sensors,))*sensor_range
@@ -408,6 +427,7 @@ class Vessel():
 
             # Testing if vessel has collided
             collision = np.any(sensor_dist_measurements < self.width)
+            # collision = False
 
         self._last_sector_dist_measurements = sector_closenesses
         self._last_sector_feasible_dists = sector_feasible_distances
@@ -422,7 +442,66 @@ class Vessel():
         #                  sensor_speed_y)
         #                 ).reshape(3, self.n_sensors)
 
-    def navigate(self, path:Path) -> np.ndarray:
+
+    def navigate(self, path:Path, dock=None) -> np.ndarray:
+        """Wrapper around path navigation states and docking navigation states."""
+        if dock:
+            return self.navigate_docking(dock) # pyright: ignore
+        
+        return self.navigate_path(path)
+
+
+    def navigate_docking(self, dock: BaseDock) -> np.ndarray:
+        """Calcuates and returns navigations states representing the vessel's attitude
+        with repspec to the dock.
+
+        Returns
+        -------
+        navigation_states : np.ndarray
+        """
+        # calculate abs distance from dock
+        goal_position = np.array(dock.get_good_zone_center())
+        goal_distance = linalg.norm(goal_position - self.position)
+
+        # calculate dock angle error. (zero if paralel to docking vector)
+        dock_angle_error = float(geom.princip(dock.angle - self.heading))
+
+        # calculate distance straight from heading to dock vector (Nessesary?)
+
+        # calculate the error between heading and vector pointing straight towards the dock
+        boat_to_dock_vector = goal_position - self.position
+        boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
+        boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
+    
+        # Decide if vessel has reach the goal (inside good zone, for a time without crashing)
+        if goal_distance <= self.config["min_goal_distance"]:
+            self._docking_prosess_active = True
+            self._docking_step_time += 1
+            # print("inside dock")
+        else:
+            self._docking_prosess_active = False
+            self._docking_step_time = 0
+
+        required_docking_steps = 100 # TODO: Should this be config param?
+        if self._docking_prosess_active and self._docking_step_time >= required_docking_steps:
+            self._reached_goal = True
+
+        self._last_navi_state_dict = {
+            'surge_velocity': self.velocity[0],
+            'sway_velocity': self.velocity[1],
+            'yaw_rate': self.yaw_rate,
+            'heading_error': dock_angle_error,
+            'goal_distance': goal_distance,
+            'docking_active': self._docking_prosess_active,
+            'boat_to_dock_heading_error': boat_to_dock_heading_error,
+            'look_ahead_heading_error': 0, # Not used
+            'cross_track_error': 0, # Not used
+        }
+        
+        navigation_states = np.array([self._last_navi_state_dict[state] for state in Vessel.NAVIGATION_FEATURES])
+        return navigation_states[np.newaxis, :]
+
+    def navigate_path(self, path:Path) -> np.ndarray:
         """
         Calculates and returns navigation states representing the vessel's attitude
         with respect to the desired path.
@@ -553,3 +632,4 @@ class Vessel():
     def _thrust_right_motor(self, thrust_right):
         thrust_right = np.clip(thrust_right, 0, 1)*self.config['thrusters_max_forward']
         return thrust_right
+
