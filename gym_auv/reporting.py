@@ -227,7 +227,7 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
     trajectories = env.last_episode
  
     path =  trajectories['path']
-    if not path: # FIXME: does not work without a path, this is not optimal
+    if not path.any(): # FIXME: does not work without a path, this is not optimal
         return
     # print(f"From plot_trajectory: {path}")
     path_taken = trajectories['path_taken']
