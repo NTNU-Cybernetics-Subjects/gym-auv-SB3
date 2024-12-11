@@ -61,7 +61,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.cumulative_reward = 0
         self.rewarder = None
 
-        # NOTE: 
+        # NOTE:
         self.dock = None
 
         self.history = dict.fromkeys(
@@ -241,14 +241,16 @@ class BaseEnvironment(gym.Env, ABC):
             Dictionary with data used for reporting or debugging
         """
 
-        action[0] = (
-            (action[0] + 1) / 2
-        )  # Done to be compatible with RL algorithms that require symmetric action spaces
-        action[1] = (
-            (action[1] + 1) / 2
-        )  # Done to be compatible with RL algorithms that require symmetric action spaces
+        # action[0] = (
+            # (action[0] + 1) / 2
+        # )  # Done to be compatible with RL algorithms that require symmetric action spaces
+        # action[1] = (
+            # (action[1] + 1) / 2
+        # )  # Done to be compatible with RL algorithms that require symmetric action spaces
         if np.isnan(action).any():
             action = np.zeros(action.shape)
+
+        # print(f"action: {action}")
 
         # If the environment is dynamic, calling self.update will change it.
         self._update()

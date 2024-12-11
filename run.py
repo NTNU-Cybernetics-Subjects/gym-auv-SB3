@@ -79,7 +79,8 @@ def play_scenario(env, recorded_env, args, figure_folder, agent=None):
 
     from pyglet.window import key
 
-    key_input = np.array([-1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    # key_input = np.array([-1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    key_input = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     autopilot = False
 
     # gail_expert_generation = False
@@ -99,9 +100,17 @@ def play_scenario(env, recorded_env, args, figure_folder, agent=None):
 
     def key_press(k, mod):
         nonlocal autopilot
-        if k == key.LEFT:  key_input[0] = 0.5
-        if k == key.RIGHT: key_input[1] = 0.5
-        if k == key.A: 
+        # if k == key.LEFT:  key_input[0] = 0.5
+        # if k == key.RIGHT: key_input[1] = 0.5
+        if k == key.U:
+            key_input[0] = 0.5
+        if k == key.I:
+            key_input[1] = 0.5
+        if k == key.J:
+            key_input[0] = -0.5
+        if k == key.K:
+            key_input[1] = -0.5
+        if k == key.A:
             autopilot = not autopilot
             print('Autopilot {}'.format(autopilot))
         # if k == key.E: 
@@ -116,8 +125,16 @@ def play_scenario(env, recorded_env, args, figure_folder, agent=None):
         if k == key.Q:
             quit = True
             print('quit')
-        if k == key.LEFT and key_input[0] != 0: key_input[0] = -1
-        if k == key.RIGHT and key_input[1] != 0: key_input[1] = -1
+        # if k == key.LEFT and key_input[0] != 0: key_input[0] = -1
+        # if k == key.RIGHT and key_input[1] != 0: key_input[1] = -1
+        if k == key.U and key_input[0] != 0:
+            key_input[0] = 0
+        if k == key.I and key_input[1] != 0:
+            key_input[1] = 0
+        if k == key.J and key_input[0] != 0:
+            key_input[0] = 0
+        if k == key.K and key_input[1] != 0:
+            key_input[1] = 0
 
     viewer = env.env._viewer2d if args.render in {'both', '2d'} else env._viewer3d
     viewer.window.on_key_press = key_press
