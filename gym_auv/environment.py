@@ -59,16 +59,23 @@ class BaseEnvironment(gym.Env, ABC):
         self.cumulative_reward = 0
         self.rewarder = None
 
-        self.history = dict.fromkeys(['cross_track_error',
-                                      'reached_goal',
-                                      'collision',
-                                      'reward',
-                                      'timesteps',
-                                      'duration',
-                                      'progress',
-                                      'pathlength'
-                                      ], np.array([]))
-        #self.history = []
+        # NOTE:
+        self.dock = None
+
+        self.history = dict.fromkeys(
+            [
+                "cross_track_error",
+                "reached_goal",
+                "collision",
+                "reward",
+                "timesteps",
+                "duration",
+                "progress",
+                "pathlength",
+            ],
+            np.array([]),
+        )
+        # self.history = []
 
         # Declaring attributes
         self.obstacles = []
@@ -224,9 +231,16 @@ class BaseEnvironment(gym.Env, ABC):
             Dictionary with data used for reporting or debugging
         """
 
-        action[0] = (action[0] + 1)/2 # Done to be compatible with RL algorithms that require symmetric action spaces
-        action[1] = (action[1] + 1)/2 # Done to be compatible with RL algorithms that require symmetric action spaces
-        if np.isnan(action).any(): action = np.zeros(action.shape)
+        # action[0] = (
+            # (action[0] + 1) / 2
+        # )  # Done to be compatible with RL algorithms that require symmetric action spaces
+        # action[1] = (
+            # (action[1] + 1) / 2
+        # )  # Done to be compatible with RL algorithms that require symmetric action spaces
+        if np.isnan(action).any():
+            action = np.zeros(action.shape)
+
+        # print(f"action: {action}")
 
         # If the environment is dynamic, calling self.update will change it.
         self._update()
@@ -433,4 +447,3 @@ class TrajectoryLog(tables.IsDescription):
     episode = tables.Int32Col()
     path = tables.Float32Col(shape=(2,1000))
     path_taken = tables.Float32Col(shape=(10000, 2))
-    obstacles = tables.Float32Col(shape=(500, 2))

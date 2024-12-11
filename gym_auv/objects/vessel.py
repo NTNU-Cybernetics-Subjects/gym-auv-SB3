@@ -319,7 +319,8 @@ class Vessel():
 
         self._step_counter += 1
 
-    def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
+    # TODO: Add position of dock as observation?
+    def perceive(self, obstacles:list, dock=None) -> np.ndarray:
         """
         Simulates the sensor suite and returns observation arrays of the environment.
 
@@ -545,11 +546,24 @@ class Vessel():
 
     # ---- JAN ADDING MODEL WITH DIRECT THRUSTER INPUTS --- #
 
+    def _thrust_to_action(self, thrust):
+        action = 0
+        if thrust > 0:
+            action = np.clip(thrust, -1, 1) * self.config['thrusters_max_forward']
+        elif thrust < 0:
+            action = np.clip(thrust, -1, 1) * self.config['thrusters_max_backwards']
+
+        return action
+
+
     def _thrust_left_motor(self, thrust_left):
-        thrust_left = np.clip(thrust_left, 0, 1)*self.config['thrusters_max_forward']
-        return thrust_left
+        # thrust_left = np.clip(thrust_left, 0, 1)*self.config['thrusters_max_forward']
+        # return thrust_left
+        return self._thrust_to_action(thrust_left)
 
 
     def _thrust_right_motor(self, thrust_right):
-        thrust_right = np.clip(thrust_right, 0, 1)*self.config['thrusters_max_forward']
-        return thrust_right
+        # thrust_right = np.clip(thrust_right, 0, 1)*self.config['thrusters_max_forward']
+        # return thrust_right
+        return self._thrust_to_action(thrust_right)
+
