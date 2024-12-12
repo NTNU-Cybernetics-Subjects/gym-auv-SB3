@@ -414,6 +414,8 @@ class DockingRewarder(BaseRewarder):
         self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
         self.params['eta'] = 0  # _sample_eta()
 
+        self.last_progress = 0
+
     N_INSIGHTS = 0
 
     def insight(self):
@@ -424,6 +426,8 @@ class DockingRewarder(BaseRewarder):
         latest_data = self._vessel.req_latest_data()
         nav_states = latest_data['navigation']
         collision = latest_data['collision']
+        progress = latest_data['progress']
+        # last_progress = latest_data['last_progress']
 
         if collision:
             reward = self.params["collision"] # * (1 - self.params["lambda"])  # -5000
@@ -436,16 +440,29 @@ class DockingRewarder(BaseRewarder):
         goal_distance = nav_states["goal_distance"]
         docking_in_progress = nav_states['docking_active']
 
-        k = 0.01
-        closure_reward = np.e ** (-goal_distance * k) * self._vessel.speed/(self._vessel.max_speed)
+        closure_reward = np.clip(progress, -1, 1)
+
+        # Test afterwards
+        # if progress > self.last_progress:
+        #     closure_reward = progress + 1
+        #     print(f"getting closer: {progress}")
+        #     self.last_progress = progress
+        # closure_reward = progress
+
+
+        # -- FIRST REWARD FUNCTION --
+        # k = 0.01
+        # closure_reward = np.e ** (-goal_distance * k) * self._vessel.speed/(self._vessel.max_speed)
+        # closure_reward = 0
 
         # heading_reward = 1 - np.cos(heading_error)
 
         docking_reward = 0.
         if docking_in_progress:
-            docking_reward = 2.
+            closure_reward = 0
+            docking_reward = 1000
 
-        living_penalty = 1
+        living_penalty = 0
         reward = closure_reward + docking_reward - living_penalty
 
         return reward

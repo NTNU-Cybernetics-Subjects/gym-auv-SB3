@@ -39,7 +39,7 @@ class DockingTestScenario0(BaseEnvironment):
         # self.path = Path([[0, 0, 50, 100, 150], [0, 50, 100, 150, 200]])
         # self.path = Path([[0, 1], [0, 0]])
         self.path = None
-        self._rewarder_class = DockingRewarderAdvanced
+        self._rewarder_class = DockingRewarder
 
         # init_state = self.path(0)
         # init_angle = self.path.get_direction(0)
@@ -49,11 +49,13 @@ class DockingTestScenario0(BaseEnvironment):
         self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
 
         # This is y,x ??
-        dock_pos = (75, -50)
-        dock_angle = -np.pi/10
+        # dock_pos = (75, -50)
+        dock_pos = (75, 0)
+        # dock_angle = -np.pi/10
+        dock_angle = 0
 
         # Initialize dock at random position within sensor_range
-        self.dock = TetrisDock(dock_pos, dock_angle, 30., 25.)
+        self.dock = TetrisDock(dock_pos, dock_angle, 40., 50.)
 
         # prog = self.path.get_closest_arclength(self.vessel.position)
         # self.path_prog_hist = np.array([prog])

@@ -117,13 +117,15 @@ class Vessel():
         'surge_velocity',
         'sway_velocity',
         'yaw_rate',
-        'look_ahead_heading_error',
-        'heading_error',
-        'cross_track_error',
+        # 'look_ahead_heading_error',
+        # 'heading_error',
+        # 'cross_track_error',
 
-        'goal_distance',                # Vegar
+        # 'goal_distance',              # Vegar
         'docking_active',               # Vegar
-        'boat_to_dock_heading_error'    # Vegar
+        'relative_goal_x',              # Vegar
+        'relative_goal_y'
+        # 'boat_to_dock_heading_error'    # Vegar
     ]
 
     def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
@@ -164,6 +166,8 @@ class Vessel():
         # -- DOCKING --
         self._docking_step_time = 0
         self._docking_prosess_active = False
+        self._last_distance_to_goal = 1000000
+        self._last_progress = 0
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -305,6 +309,8 @@ class Vessel():
         # -- DOCKING ---
         self._docking_step_time = 0
         self._docking_prosess_active = False
+        self._last_distance_to_goal = 1000000
+        self._last_progress = 0
 
     def step(self, action:list) -> None:
         """
@@ -462,7 +468,19 @@ class Vessel():
         """
         # calculate abs distance from dock
         goal_position = np.array(dock.get_good_zone_center())
-        goal_distance = linalg.norm(goal_position - self.position)
+        goal_distance_vec = goal_position - self.position
+        start_goal_distance = linalg.norm(goal_position)
+        goal_distance = linalg.norm(goal_distance_vec)
+  
+        # Minimize distance
+        self._progress = round(self._last_distance_to_goal - goal_distance,2)
+        self._last_distance_to_goal = goal_distance
+
+        # Map distance between 0-1
+        # progress = round(1 - goal_distance/start_goal_distance,2)
+        # if progress > self._progress:
+        #     self._progress = progress
+        
 
         # calculate dock angle error. (zero if paralel to docking vector)
         dock_angle_error = float(geom.princip(dock.angle - self.heading))
@@ -483,7 +501,7 @@ class Vessel():
             self._docking_prosess_active = False
             self._docking_step_time = 0
 
-        required_docking_steps = 100 # TODO: Should this be config param?
+        required_docking_steps = 1 # TODO: Should this be config param?
         if self._docking_prosess_active and self._docking_step_time >= required_docking_steps:
             self._reached_goal = True
 
@@ -493,6 +511,8 @@ class Vessel():
             'yaw_rate': self.yaw_rate,
             'heading_error': dock_angle_error,
             'goal_distance': goal_distance,
+            'relative_goal_x': goal_distance_vec[0],
+            'relative_goal_y': goal_distance_vec[1],
             'docking_active': self._docking_prosess_active,
             'boat_to_dock_heading_error': boat_to_dock_heading_error,
             'look_ahead_heading_error': 0, # Not used
@@ -571,6 +591,7 @@ class Vessel():
             'navigation': self._last_navi_state_dict,
             'collision' : self._collision,
             'progress': self._progress,
+            # 'last_progress': self._last_progress,
             'reached_goal': self._reached_goal
         }
 

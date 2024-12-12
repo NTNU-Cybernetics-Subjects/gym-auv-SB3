@@ -584,7 +584,12 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.navi_text_field.text = "Input:"
     env._viewer2d.navi_text_field.draw()
-    env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+
+    # env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+    number_of_states = len(env.vessel.NAVIGATION_FEATURES)
+    text = [":1.1f"] * (number_of_states +1)
+    # print(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+    env._viewer2d.navi_value_field.text = " ".join(text).format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
     env._viewer2d.navi_value_field.draw()
 
 def render_env(env, mode):
