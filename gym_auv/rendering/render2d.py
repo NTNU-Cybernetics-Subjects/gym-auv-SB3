@@ -10,6 +10,7 @@ Created by Haakon Robinson, based on OpenAI's gym.base_env.classical.rendering.p
 """
 
 import os
+from objects.dock import RectangularDock, TetrisDock
 import six
 import sys
 import pyglet
@@ -78,6 +79,7 @@ class Viewer2D(object):
         self.fixed_geoms = []
         self.transform = Transform()
         self.camera_zoom = 1.5
+        # self.camera_zoom = 4.5
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -325,8 +327,10 @@ def make_circle(origin=(0,0), radius=10, res=30, filled=True, start_angle=0, end
 
 
 def make_polygon(v, filled=True):
-    if filled: return FilledPolygon(v)
-    else: return PolyLine(v, True)
+    if filled:
+        return FilledPolygon(v)
+    else:
+        return PolyLine(v, True)
 
 
 def make_polyline(v):
@@ -478,6 +482,24 @@ def _render_obstacles(env):
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
 
+# FIXME:
+def _render_dock(env):
+    red = (0.9,0,0)
+    green = (0, 0.9, 0)
+ 
+    if isinstance(env.dock, RectangularDock):
+        # print("Drawing dock")
+        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
+
+    # print(f"using {list(env.dock.boundary.exterior.coords)} to draw dock")
+    if isinstance(env.dock, TetrisDock):
+        bad_region = env.dock.boundary.exterior.coords
+        # print(f"Drawing bad docking region: {list( bad_region )}")
+        env._viewer2d.draw_shape(vertices=list(bad_region) , color=red)
+
+        good_region = env.dock.get_good_zone().exterior.coords
+        env._viewer2d.draw_shape(vertices=list(good_region), color=green)
+ 
 
 def _render_tiles(env, win):
     global env_bg
@@ -549,10 +571,11 @@ def _render_indicators(env, W, H):
     env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10) # why *10? 
     env._viewer2d.lambda_value_field.draw()
 
-    env._viewer2d.eta_text_field.text = "CTE:"
-    env._viewer2d.eta_text_field.draw()
-    env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
-    env._viewer2d.eta_value_field.draw()
+    if not env.dock:
+        env._viewer2d.eta_text_field.text = "CTE:"
+        env._viewer2d.eta_text_field.draw()
+        env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
+        env._viewer2d.eta_value_field.draw()
 
     env._viewer2d.input_text_field.text = "Input:"
     env._viewer2d.input_text_field.draw()
@@ -561,7 +584,12 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.navi_text_field.text = "Input:"
     env._viewer2d.navi_text_field.draw()
-    env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+
+    # env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+    number_of_states = len(env.vessel.NAVIGATION_FEATURES)
+    text = [":1.1f"] * (number_of_states +1)
+    # print(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+    env._viewer2d.navi_value_field.text = " ".join(text).format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
     env._viewer2d.navi_value_field.draw()
 
 def render_env(env, mode):
@@ -574,6 +602,10 @@ def render_env(env, mode):
         #_render_interceptions(env)
         if env.path is not None:
             _render_path(env)
+
+        if env.dock is not None:
+            _render_dock(env)
+
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)

@@ -22,3 +22,20 @@ def generate_obstacle(rng, path, vessel, displacement_dist_std=150, obst_radius_
         min_distance = min(vessel_distance, goal_distance)
 
     return (obst_position, obst_radius)
+
+def get_random_dock_position(min_distance, max_distance) -> tuple:
+
+    # std_dist = max_distance/2
+
+    # FIXME: Use self.rnd.rand() directly in environment instead?
+    distance = np.random.uniform(min_distance, max_distance)
+    angle = np.random.uniform(0,2*np.pi)
+    dock_angle = np.random.uniform(0,2*np.pi)
+
+    x = distance * np.cos(angle)
+    y = distance * np.sin(angle)
+
+    return ((x,y), dock_angle)
+
+
+
