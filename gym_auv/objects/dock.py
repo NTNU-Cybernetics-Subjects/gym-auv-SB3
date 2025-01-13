@@ -105,7 +105,7 @@ class TetrisDock(BaseDock):
         self._position = position
         # self._angle = -np.pi/2 + heading # 90 degree offsett because we have defined dock vertically
         self.angle = heading # rad
-        print(f"Setting up TetrisDock with, pos: {self._position}, heading: {self.angle} width: {self.width}, height: {self.height}")
+        # print(f"Setting up TetrisDock with, pos: {self._position}, heading: {self.angle} width: {self.width}, height: {self.height}")
 
         # Define dock shape
         y_step = self.height/4

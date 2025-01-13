@@ -114,18 +114,20 @@ def _simulate_sensor(sensor_angle, p0_point, sensor_range, obstacles):
 class Vessel():
 
     NAVIGATION_FEATURES = [
+        # 'x_pos',
+        # 'y_pos',
+        # 'heading'
         'surge_velocity',
         'sway_velocity',
         'yaw_rate',
         # 'look_ahead_heading_error',
-        # 'heading_error',
+        'heading_error',
         # 'cross_track_error',
-
-        # 'goal_distance',              # Vegar
-        'docking_active',               # Vegar
-        'relative_goal_x',              # Vegar
-        'relative_goal_y'
-        # 'boat_to_dock_heading_error'    # Vegar
+        # 'goal_distance',
+        # 'docking_active',
+        'relative_goal_x',
+        'relative_goal_y',
+        'boat_to_dock_heading_error'
     ]
 
     def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
@@ -275,6 +277,20 @@ class Vessel():
         """Array containg the angles of the center line of each sensor sector relative to the vessel heading."""
         return self._sector_angles
 
+    @property
+    def boundary(self):
+        vertices = [
+            (-self.width/2, -self.width/2),
+            (-self.width/2, self.width/2),
+            (self.width/2, self.width/2),
+            (3/2*self.width, 0),
+            (self.width/2, -self.width/2),
+        ]
+        boundary =  shapely.geometry.Polygon(vertices)
+        boundary = shapely.affinity.rotate(boundary, self.heading) 
+        boundary = shapely.affinity.translate(boundary, xoff=self.position[0], yoff=self.position[1])
+        return boundary
+
     def reset(self, init_state:np.ndarray) -> None:
         """
         Resets the vessel to the specified initial state.
@@ -337,6 +353,7 @@ class Vessel():
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
 
         self._step_counter += 1
+        # print(list( self.boundary.exterior.coords ))
 
     # TODO: Add position of dock as observation?
     def perceive(self, obstacles:list, dock=None) -> np.ndarray:
@@ -434,6 +451,8 @@ class Vessel():
 
             # Testing if vessel has collided
             collision = np.any(sensor_dist_measurements < self.width)
+            # if collision:
+            #     print(self.position)
             # collision = False
 
         self._last_sector_dist_measurements = sector_closenesses
@@ -448,6 +467,10 @@ class Vessel():
         #                  sensor_speed_x,
         #                  sensor_speed_y)
         #                 ).reshape(3, self.n_sensors)
+
+    # def perceive_docking(self, dock):
+    #     dock_coords = 
+        
 
 
     def navigate(self, path:Path, dock=None) -> np.ndarray:
@@ -469,21 +492,25 @@ class Vessel():
         # calculate abs distance from dock
         goal_position = np.array(dock.get_good_zone_center())
         goal_distance_vec = goal_position - self.position
-        start_goal_distance = linalg.norm(goal_position)
+        start_goal_distance = linalg.norm(goal_position) - self.config['min_goal_distance']
         goal_distance = linalg.norm(goal_distance_vec)
   
         # Minimize distance
-        self._progress = round(self._last_distance_to_goal - goal_distance,2)
-        self._last_distance_to_goal = goal_distance
+        # self._progress = round(self._last_distance_to_goal - goal_distance,2)
+        # self._last_distance_to_goal = goal_distance
+        
+        min_goal_distance = goal_distance - self.config['min_goal_distance']
+        self._progress = round(1 - min_goal_distance/start_goal_distance, 4)
+
 
         # Map distance between 0-1
-        # progress = round(1 - goal_distance/start_goal_distance,2)
         # if progress > self._progress:
         #     self._progress = progress
         
 
         # calculate dock angle error. (zero if paralel to docking vector)
         dock_angle_error = float(geom.princip(dock.angle - self.heading))
+        # print(dock_angle_error)
 
         # calculate distance straight from heading to dock vector (Nessesary?)
 
@@ -491,6 +518,9 @@ class Vessel():
         boat_to_dock_vector = goal_position - self.position
         boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
         boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
+
+        # print(f"head_err {dock_angle_error}, boat_to_dock {boat_to_dock_heading_error}")
+        # print(f"goal dist:{ goal_distance }")
     
         # Decide if vessel has reach the goal (inside good zone, for a time without crashing)
         if goal_distance <= self.config["min_goal_distance"]:
@@ -506,17 +536,19 @@ class Vessel():
             self._reached_goal = True
 
         self._last_navi_state_dict = {
+            'x_pos': self.position[0],
+            'y_pos': self.position[1],
             'surge_velocity': self.velocity[0],
             'sway_velocity': self.velocity[1],
             'yaw_rate': self.yaw_rate,
             'heading_error': dock_angle_error,
+            'boat_to_dock_heading_error': boat_to_dock_heading_error,
             'goal_distance': goal_distance,
             'relative_goal_x': goal_distance_vec[0],
             'relative_goal_y': goal_distance_vec[1],
             'docking_active': self._docking_prosess_active,
-            'boat_to_dock_heading_error': boat_to_dock_heading_error,
-            'look_ahead_heading_error': 0, # Not used
-            'cross_track_error': 0, # Not used
+            'look_ahead_heading_error': 0,
+            'cross_track_error': 0,
         }
         
         navigation_states = np.array([self._last_navi_state_dict[state] for state in Vessel.NAVIGATION_FEATURES])

@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 import tables
 import os
+import pandas as pd
 
 
 class BaseEnvironment(gym.Env, ABC):
@@ -176,6 +177,7 @@ class BaseEnvironment(gym.Env, ABC):
         self.progress = 0
         self._last_image_frame = None
 
+
         # Generating a new environment
         if self.verbose:
             print("Generating scenario...")
@@ -254,6 +256,7 @@ class BaseEnvironment(gym.Env, ABC):
 
         # If the environment is dynamic, calling self.update will change it.
         self._update()
+        # print(self.history)
 
         # Updating vessel state from its dynamics model
         self.vessel.step(action)
@@ -280,8 +283,12 @@ class BaseEnvironment(gym.Env, ABC):
 
         # Testing criteria for ending the episode
         done = self._isdone()
+        if vessel_data['navigation']['goal_distance'] > 200:
+            done = True
 
         self._save_latest_step()
+        # print(self.episode)
+        # print(self.history)
 
         self.t_step += 1
 
@@ -373,9 +380,12 @@ class BaseEnvironment(gym.Env, ABC):
                 "duration": self.t_step * self.config["t_step_size"],
                 "progress": self.progress,
                 "pathlength": self.path.length if self.path is not None else 0,
+                # "path_taken": self.vessel.path_taken,
             }
             for key in self.history.keys():
                 self.history[key] = np.append(self.history[key], stats[key])
+
+            # self.history["path_taken"] = self.path.path_taken
 
     def store_statistics_to_file(self, path):
         path_history = os.path.join(path, "history.h5")

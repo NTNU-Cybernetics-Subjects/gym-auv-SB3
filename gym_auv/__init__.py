@@ -70,7 +70,8 @@ REALWORLD_CONFIG["render_distance"] = 300  # 2000
 # REALWORLD_CONFIG["sensor_frequency"] = 0.5   # HALVOR CREATED; THOMAS COMMENTED
 
 DOCKING_CONFIG = DEFAULT_CONFIG.copy()
-DOCKING_CONFIG["min_goal_distance"] = 2
+DOCKING_CONFIG["min_goal_distance"] = 4
+DOCKING_CONFIG["max_timesteps"] = 700  # Maximum amount of timesteps before episode ends
 
 SCENARIOS = {
     "TestScenario0-v0": {
@@ -146,14 +147,30 @@ SCENARIOS = {
         "entry_point": "gym_auv.envs:DockingTestScenario0",
         "config": DOCKING_CONFIG,
     },
-    "DockingRandomScenario-v0": {
-        "entry_point": "gym_auv.envs:DockingRandomScenario0",
+    "DockingTestScenario-v1": {
+        "entry_point": "gym_auv.envs:DockingTestScenario1",
+        "config": DOCKING_CONFIG,
+    },
+    "DockingRandomDockScenario-v0": {
+        "entry_point": "gym_auv.envs:DockingRandomDockScenario0",
         "config": DOCKING_CONFIG,
     },
     "DockingAndPathScenario-v0": {
         "entry_point": "gym_auv.envs:DockingAndPathScenario0",
         "config": DOCKING_CONFIG,
     },
+    "DockingStraightScenario-v0": {
+        "entry_point": "gym_auv.envs:DockingStraightScenario0",
+        "config": DOCKING_CONFIG,
+    },
+    "DockingStraightVariationScenario-v0": {
+        "entry_point": "gym_auv.envs:DockingStraightVariationScenario0",
+        "config": DOCKING_CONFIG,
+    },
+    "DockingStraightVariationScenario-v1": {
+        "entry_point": "gym_auv.envs:DockingStraightVariationScenario1",
+        "config": DOCKING_CONFIG,
+    }
 }
 
 for scenario in SCENARIOS:

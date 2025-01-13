@@ -13,6 +13,7 @@ import gym
 import gym_auv
 import gym_auv.reporting
 import multiprocessing
+import csv
 
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv, SubprocVecEnv, VecFrameStack
@@ -251,7 +252,7 @@ def main(args):
     custom_envconfig = _preprocess_custom_envconfig(args.envconfig) if args.envconfig is not None else {}
     env_id = 'gym_auv:' + args.env
     env_name = env_id.split(':')[-1] if ':' in env_id else env_id
-    envconfig = gym_auv.SCENARIOS[env_name]['config'] if env_name in gym_auv.SCENARIOS else {}  
+    envconfig = gym_auv.SCENARIOS[env_name]['config'] if env_name in gym_auv.SCENARIOS else {}
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
@@ -299,7 +300,6 @@ def main(args):
         os.makedirs(figure_folder, exist_ok=True)
         scenario_folder = os.path.join(figure_folder, 'scenarios')
         os.makedirs(scenario_folder, exist_ok=True)
-
         video_folder = os.path.join(DIR_PATH, 'logs', 'videos', args.env, EXPERIMENT_ID)
         os.makedirs(video_folder, exist_ok=True)
         
@@ -308,7 +308,7 @@ def main(args):
             env.load(args.scenario)
         _vec_env = DummyVecEnv([lambda: env])
         vec_env = VecFrameStack(_vec_env, n_stack=1, channels_order='first')
-        recorded_env = VecVideoRecorder(vec_env, video_folder, record_video_trigger=lambda x: x==0, 
+        recorded_env = VecVideoRecorder(vec_env, video_folder, record_video_trigger=lambda x: x==0,
             video_length=args.recording_length, name_prefix=(args.env if args.video_name == 'auto' else args.video_name)
         )
         obs = recorded_env.reset()
@@ -329,6 +329,7 @@ def main(args):
             if t_steps % 800 == 0 or done:
                 if not done:
                     env.save_latest_episode(save_history=False)
+                    # env.store_statistics_to_file("enjoys/")
                 #gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=scenario_folder, fig_prefix=(args.env + '_ep{}_step{}'.format(ep_number, t_steps)))
                 #gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=scenario_folder, fig_prefix=(args.env + '_ep{}_step{}_local'.format(ep_number, t_steps)), local=True)
             if done:
@@ -357,6 +358,7 @@ def main(args):
             #vec_env = VecFrameStack(_vec_env, n_stack=1, channels_order='first')
 
         if (args.agent is not None):
+            print(f"Loading agent {args.agent}")
             agent = model.load(args.agent)
             agent.set_env(vec_env)
         else:
@@ -694,15 +696,40 @@ def main(args):
                 if np.sum(done_array).item() > 0:
                     self.n_episodes += np.sum(done_array).item()
                     self.logger.record('time/episodes', self.n_episodes)
+                    # print(f"done array: {done_array}")
                     # Tensorboard logging
                     #self.vec_env.env_method('store_statistics_to_file', path=figure_folder)
 
                     # Fetch stats from history attribute and log to tensorboard
                     stats = np.array(self.vec_env.get_attr("history"))[done_array]
+                    # print(stats)
+                    path_taken = np.array(self.vec_env.get_attr("last_episode"))[done_array]
+
+                    # print(f"stats: {stats}")
                     for _env in stats:
                         for stat in _env.keys():
                             self.logger.record('stats/'+stat, _env[stat])
                             self.report[stat].append(_env[stat])
+                            # print(f"recording: stat {stat}, env_stat: {_env[stat]}")
+
+                    # Log to file here
+                    # tensorboard_log = os.path.join(DIR_PATH, 'logs', 'tensorboard', args.env, EXPERIMENT_ID)
+                    logdir = os.path.join(DIR_PATH, 'logs', 'history', args.env, EXPERIMENT_ID)
+                    os.makedirs(logdir, exist_ok=True)
+                    for _env in stats:
+                        columns = list(_env.keys())
+                        row = {key: value[-1] for key, value in _env.items()}
+                        # print(f"Writing row: {row}\nfrom stat history: {_env}")
+                        with open(os.path.join(logdir, "history.csv"), mode="a", newline='') as file:
+                            writer = csv.DictWriter(file, fieldnames=columns)
+
+                            if file.tell() == 0:
+                                writer.writeheader()
+
+                            writer.writerow(row)
+                    
+                    # log path taken
+                    # np.savetxt(os.path.join(logdir, "path_taken.npy"), path_taken)
 
                 # Update the progress bar (n_calls is automatically incremented on each step)
                 #self.bar.update(self.num_timesteps)
@@ -762,8 +789,8 @@ def main(args):
         figure_folder = os.path.join(DIR_PATH, 'logs', 'plots', args.env, EXPERIMENT_ID)
         os.makedirs(figure_folder, exist_ok=True)
         agent = PPO.load(args.agent)
-
         if args.testvals:
+
             testvals = json.load(open(args.testvals, 'r'))
             valuegrid = list(ParameterGrid(testvals))
             for valuedict in valuegrid:
@@ -832,13 +859,13 @@ def main(args):
                 obs = active_env.reset()
                 env.load(args.scenario)
                 print('Loaded', args.scenario)
-            else: 
+            else:
                 if reset:
                     obs = active_env.reset()
                 else:
                     obs = env.observe()
 
-            gym_auv.reporting.plot_scenario(env, fig_dir=scenario_folder, fig_postfix=id, show=args.onlyplot)
+            # gym_auv.reporting.plot_scenario(env, fig_dir=scenario_folder, fig_postfix=id, show=args.onlyplot) #FIXME:
             if args.onlyplot:
                 return
             cumulative_reward = 0
@@ -872,7 +899,7 @@ def main(args):
                             env, fig_dir=scenario_folder, fig_prefix=(args.env + '_t_step_' + str(t_steps) + '_' + str(size) + '_' + id), local=True, size=size
                         )
                 elif done:
-                    gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
+                    # gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id)) # FIXME: 
                     if info[0]['collision']:
                         failed_tests.append(id)
                         print("\nCOLLISION IN", id)
