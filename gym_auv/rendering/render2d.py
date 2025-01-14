@@ -78,8 +78,8 @@ class Viewer2D(object):
         self.onetime_geoms = []
         self.fixed_geoms = []
         self.transform = Transform()
-        self.camera_zoom = 1.5
-        # self.camera_zoom = 4.5
+        #self.camera_zoom = 1.5
+        self.camera_zoom = 4.5
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -545,7 +545,6 @@ def _render_indicators(env, W, H):
     gl.glVertex3f(W, 0, 0)
     gl.glVertex3f(W, 5*h, 0)
     gl.glVertex3f(0, 5*h, 0)
-    gl.glVertex3f(0, 0, 0)
     gl.glEnd()
 
     env._viewer2d.reward_text_field.text = "Current Reward:"
@@ -579,22 +578,32 @@ def _render_indicators(env, W, H):
         env._viewer2d.eta_text_field.draw()
         env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
         env._viewer2d.eta_value_field.draw()
+        env._viewer2d.navi_text_field.text = "Input:"
+        env._viewer2d.navi_text_field.draw()
+
+        # env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        number_of_states = len(env.vessel.NAVIGATION_FEATURES)
+        text = [":1.1f"] * (number_of_states +1)
+        # print(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        env._viewer2d.navi_value_field.text = " ".join(text).format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        env._viewer2d.navi_value_field.draw()
 
     env._viewer2d.input_text_field.text = "Input:"
     env._viewer2d.input_text_field.draw()
     env._viewer2d.input_value_field.text = "T_u: {:2.2f} [N], T_r: {:2.2f} [Nm]".format(env.vessel._input[0], env.vessel._input[1])
     env._viewer2d.input_value_field.draw()
-
-    env._viewer2d.navi_text_field.text = "Input:"
-    env._viewer2d.navi_text_field.draw()
-
-    # env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
-    number_of_states = len(env.vessel.NAVIGATION_FEATURES)
-    text = [":1.1f"] * (number_of_states +1)
-    # print(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
-    env._viewer2d.navi_value_field.text = " ".join(text).format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
-    env._viewer2d.navi_value_field.draw()
-
+    
+    env._viewer2d.heading_err_text_field.text = "Heading error:"
+    env._viewer2d.heading_err_text_field.draw()
+    env._viewer2d.heading_err_value_field.text = "{:2.2f}rad".format(env.vessel._last_navi_state_dict['boat_to_dock_heading_error'])
+    env._viewer2d.heading_err_value_field.draw()
+    
+    
+    env._viewer2d.goal_distance_text_field.text = "Goal distance:"
+    env._viewer2d.goal_distance_text_field.draw()
+    env._viewer2d.goal_distance_value_field.text = "{:2.2f}m".format(env.vessel._last_navi_state_dict['goal_distance'])
+    env._viewer2d.goal_distance_value_field.draw()
+    
 def render_env(env, mode):
     global rot_angle
 
@@ -730,5 +739,19 @@ def init_env_viewer(env):
     env._viewer2d.navi_value_field = pyglet.text.Label('0000', font_size=10,
                                                         x=260, y=WINDOW_H - 170.00, anchor_x='right', anchor_y='center',
                                                         color=(0, 0, 0, 255))
+    # docking navigation
+    
+    env._viewer2d.heading_err_text_field = pyglet.text.Label('0000', font_size=10,
+                                                       x=20, y=WINDOW_H - 170.00, anchor_x='left', anchor_y='center',
+                                                       color=(0, 0, 0, 255))
+    env._viewer2d.heading_err_value_field = pyglet.text.Label('0000', font_size=10,
+                                                    x=260, y=WINDOW_H - 170.00, anchor_x='right', anchor_y='center',
+                                                    color=(0, 0, 0, 255))
+    env._viewer2d.goal_distance_text_field = pyglet.text.Label('0000', font_size=10,
+                                                       x=20, y=WINDOW_H - 190.00, anchor_x='left', anchor_y='center',
+                                                       color=(0, 0, 0, 255))
+    env._viewer2d.goal_distance_value_field = pyglet.text.Label('0000', font_size=10,
+                                                    x=260, y=WINDOW_H - 190.00, anchor_x='right', anchor_y='center',
+                                                    color=(0, 0, 0, 255))
 
     print('Initialized 2D viewer')

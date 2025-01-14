@@ -123,14 +123,14 @@ class Vessel():
         # 'look_ahead_heading_error',
         # 'heading_error',
         # 'cross_track_error',
-        # 'goal_distance',
+        'goal_distance',
         # 'docking_active',
-        'relative_goal_x',
-        'relative_goal_y',
-        # 'boat_to_dock_heading_error'
+        # 'relative_goal_x',
+        # 'relative_goal_y',
+        'boat_to_dock_heading_error'
     ]
 
-    def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
+    def __init__(self, config:dict, init_state:np.ndarray, width:float=1) -> None:
         """
         Initializes and resets the vessel.
 
@@ -517,13 +517,14 @@ class Vessel():
 
             # calculate distance straight from heading to dock vector (Nessesary?)
 
-            # calculate the error between heading and vector pointing straight towards the dock
-            boat_to_dock_vector = goal_position - self.position
-            boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
-            boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
+
         else:
             dock_angle_error = 0
-            boat_to_dock_heading_error = 0
+            
+        # calculate the error between heading and vector pointing straight towards the dock
+        boat_to_dock_vector = goal_position - self.position
+        boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
+        boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
             
 
         # print(f"head_err {dock_angle_error}, boat_to_dock {boat_to_dock_heading_error}")
@@ -538,7 +539,7 @@ class Vessel():
             self._docking_prosess_active = False
             self._docking_step_time = 0
 
-        required_docking_steps = 1 # TODO: Should this be config param?
+        required_docking_steps = 20 # TODO: Should this be config param?
         if self._docking_prosess_active and self._docking_step_time >= required_docking_steps:
             self._reached_goal = True
 

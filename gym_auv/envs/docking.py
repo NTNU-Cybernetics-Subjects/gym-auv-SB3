@@ -270,7 +270,7 @@ class SimpleDockTestScenario0(BaseEnvironment):
         dock_pos = (75, 0)
 
         # Initialize dock, position, width, height
-        self.dock = SimpleDock(dock_pos, 40., 40.)
+        self.dock = SimpleDock(dock_pos, 4., 4.)
 
 
 

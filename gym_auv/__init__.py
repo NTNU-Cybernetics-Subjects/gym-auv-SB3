@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
     "min_cumulative_reward": -2000,  # Minimum cumulative reward received before episode ends
     "max_timesteps": 10000,  # Maximum amount of timesteps before episode ends
-    "min_goal_distance": 5,  # Minimum aboslute distance to the goal position before episode ends
+    "ui": 5,  # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,  # Minimum path progress before scenario is considered successful and the episode ended
     # ---- SIMULATION ---- #
     "t_step_size": 1.0,  # 1.0 originally                             # Length of simulation timestep [s]
@@ -71,7 +71,7 @@ REALWORLD_CONFIG["render_distance"] = 300  # 2000
 
 DOCKING_CONFIG = DEFAULT_CONFIG.copy()
 DOCKING_CONFIG["min_goal_distance"] = 4
-DOCKING_CONFIG["max_timesteps"] = 1000  # Maximum amount of timesteps before episode ends
+DOCKING_CONFIG["max_timesteps"] = 10000  # Maximum amount of timesteps before episode ends
 
 SCENARIOS = {
     "TestScenario0-v0": {

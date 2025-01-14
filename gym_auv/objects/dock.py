@@ -168,7 +168,7 @@ class TetrisDock(BaseDock):
 class SimpleDock(BaseDock):
 
     def _setup(self, position, width, height) -> None:
-        print(f"Setting up RectangularDock with, pos: {position}, width: {width}, height: {height}")
+        print(f"Setting up SimpleDock with, pos: {position}, width: {width}, height: {height}")
         self.width = width
         self.height = height
         self._position = position
