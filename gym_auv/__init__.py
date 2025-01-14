@@ -71,7 +71,7 @@ REALWORLD_CONFIG["render_distance"] = 300  # 2000
 
 DOCKING_CONFIG = DEFAULT_CONFIG.copy()
 DOCKING_CONFIG["min_goal_distance"] = 4
-DOCKING_CONFIG["max_timesteps"] = 700  # Maximum amount of timesteps before episode ends
+DOCKING_CONFIG["max_timesteps"] = 1000  # Maximum amount of timesteps before episode ends
 
 SCENARIOS = {
     "TestScenario0-v0": {
@@ -169,6 +169,10 @@ SCENARIOS = {
     },
     "DockingStraightVariationScenario-v1": {
         "entry_point": "gym_auv.envs:DockingStraightVariationScenario1",
+        "config": DOCKING_CONFIG,
+    },
+        "SimpleDockTestScenario-v0": {
+        "entry_point": "gym_auv.envs:SimpleDockTestScenario0",
         "config": DOCKING_CONFIG,
     }
 }

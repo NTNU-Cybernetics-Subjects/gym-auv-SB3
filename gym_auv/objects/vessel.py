@@ -4,7 +4,7 @@ This module implements an AUV that is simulated in the horizontal plane.
 import numpy as np
 import numpy.linalg as linalg
 from itertools import islice, chain, repeat
-from objects.dock import BaseDock
+from gym_auv.objects.dock import BaseDock, TetrisDock
 import shapely.geometry, shapely.errors, shapely.strtree, shapely.ops, shapely.prepared
 from scipy.integrate import solve_ivp
 
@@ -121,13 +121,13 @@ class Vessel():
         'sway_velocity',
         'yaw_rate',
         # 'look_ahead_heading_error',
-        'heading_error',
+        # 'heading_error',
         # 'cross_track_error',
         # 'goal_distance',
         # 'docking_active',
         'relative_goal_x',
         'relative_goal_y',
-        'boat_to_dock_heading_error'
+        # 'boat_to_dock_heading_error'
     ]
 
     def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
@@ -376,7 +376,7 @@ class Vessel():
                 lambda obst: float(p0_point.distance(obst.boundary)) - self._width < sensor_range, obstacles
             ))
             # -- NOTE: Add the bad zone of dock as obstacle --
-            if dock:
+            if dock and isinstance(dock, TetrisDock):
                 self._nearby_obstacles.append(dock) if float(p0_point.distance(dock.boundary)) - self._width < sensor_range else None
                 # dock_obs = float(p0_point.distance(dock.boundary)) - self._width < sensor_range
                 # print(dock_obs)
@@ -490,7 +490,10 @@ class Vessel():
         navigation_states : np.ndarray
         """
         # calculate abs distance from dock
-        goal_position = np.array(dock.get_good_zone_center())
+        if isinstance(dock, TetrisDock):
+            goal_position = np.array(dock.get_good_zone_center())
+        else:
+            goal_position = np.array(dock._position)
         goal_distance_vec = goal_position - self.position
         start_goal_distance = linalg.norm(goal_position) - self.config['min_goal_distance']
         goal_distance = linalg.norm(goal_distance_vec)
@@ -507,17 +510,21 @@ class Vessel():
         # if progress > self._progress:
         #     self._progress = progress
         
+        if isinstance(dock, TetrisDock):
+            # calculate dock angle error. (zero if paralel to docking vector)
+            dock_angle_error = float(geom.princip(dock.angle - self.heading))
+            # print(dock_angle_error)
 
-        # calculate dock angle error. (zero if paralel to docking vector)
-        dock_angle_error = float(geom.princip(dock.angle - self.heading))
-        # print(dock_angle_error)
+            # calculate distance straight from heading to dock vector (Nessesary?)
 
-        # calculate distance straight from heading to dock vector (Nessesary?)
-
-        # calculate the error between heading and vector pointing straight towards the dock
-        boat_to_dock_vector = goal_position - self.position
-        boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
-        boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
+            # calculate the error between heading and vector pointing straight towards the dock
+            boat_to_dock_vector = goal_position - self.position
+            boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
+            boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
+        else:
+            dock_angle_error = 0
+            boat_to_dock_heading_error = 0
+            
 
         # print(f"head_err {dock_angle_error}, boat_to_dock {boat_to_dock_heading_error}")
         # print(f"goal dist:{ goal_distance }")

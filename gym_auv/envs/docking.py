@@ -3,8 +3,8 @@ import numpy as np
 import random
 import math
 
-from objects.dock import RectangularDock, TetrisDock
-from objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder
+from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
+from gym_auv.objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder
 
 import gym_auv.utils.geomutils as geom
 from gym_auv.objects.vessel import Vessel
@@ -251,6 +251,27 @@ class DockingStraightVariationScenario1(BaseEnvironment):
             return 0
         else:
             return int(np.sum(reached_goal)/4) % len(self.Levels)
+        
+        
+class SimpleDockTestScenario0(BaseEnvironment):
+    """Simple environment with only the dock at a fixed position."""
+    
+    def _generate(self) -> None:
+        self.path = None
+        self._rewarder_class = DockingRewarder
+
+        init_state = (0,0)
+        init_angle = 0
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
+
+        # This is y,x ??
+        # dock_pos = (75, -50)
+        dock_pos = (75, 0)
+
+        # Initialize dock, position, width, height
+        self.dock = SimpleDock(dock_pos, 40., 40.)
+
 
 
 

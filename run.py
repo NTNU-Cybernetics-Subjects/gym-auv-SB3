@@ -260,7 +260,7 @@ def main(args):
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
-    timestamp_now = datetime.now().strftime("%d-%m-%Y__%H:%M:%S")
+    timestamp_now = datetime.now().strftime("%d-%m-%Y__%H-%M-%S")
     id = str(int(time()))
     # EXPERIMENT_ID = str(int(time())) + args.algo.lower()
     EXPERIMENT_ID = f"{id}__{timestamp_now}__{args.algo.lower()}"

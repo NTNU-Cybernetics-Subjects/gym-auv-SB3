@@ -165,4 +165,26 @@ class TetrisDock(BaseDock):
         placed_boundary = shapely.affinity.translate(rotated_boundary, xoff=self._position[0], yoff=self._position[1])
         return placed_boundary
 
+class SimpleDock(BaseDock):
+
+    def _setup(self, position, width, height) -> None:
+        print(f"Setting up RectangularDock with, pos: {position}, width: {width}, height: {height}")
+        self.width = width
+        self.height = height
+        self._position = position
+
+        # Define dock shape
+        self.points = [
+            (-self.width/2, -self.height/2),
+            (-self.width/2, self.height/2),
+            (self.width/2, self.height/2),
+            (self.width/2, -self.height/2),
+            (-self.width/2, -self.height/2)
+        ]
+        
+    def _calculate_boundary(self) -> shapely.geometry.Polygon:
+        origo_boundary = shapely.geometry.Polygon(self.points)
+        placed_boundary = shapely.affinity.translate(origo_boundary, xoff=self._position[0], yoff=self._position[1])
+        return placed_boundary
+
 

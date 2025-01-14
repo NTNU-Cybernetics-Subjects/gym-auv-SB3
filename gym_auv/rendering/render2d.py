@@ -10,7 +10,7 @@ Created by Haakon Robinson, based on OpenAI's gym.base_env.classical.rendering.p
 """
 
 import os
-from objects.dock import RectangularDock, TetrisDock
+from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
 import six
 import sys
 import pyglet
@@ -499,6 +499,9 @@ def _render_dock(env):
 
         good_region = env.dock.get_good_zone().exterior.coords
         env._viewer2d.draw_shape(vertices=list(good_region), color=green)
+        
+    elif isinstance(env.dock, SimpleDock):
+        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
  
 
 def _render_tiles(env, win):

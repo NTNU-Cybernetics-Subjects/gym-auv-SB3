@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 from gym.utils import seeding
-from objects import dock
+# from objects import dock
 
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.rewarder import ColavRewarder, PathRewarder
