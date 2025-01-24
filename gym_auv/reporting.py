@@ -16,6 +16,7 @@ matplotlib.rcParams['hatch.linewidth'] = 0.5
 matplotlib.rcParams['pdf.fonttype'] = 42    ## TrueType fonts
 matplotlib.rcParams['ps.fonttype'] = 42     ## TrueType fonts
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.colors as mcolors
@@ -225,8 +226,11 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
     #print('Plotting with local = ' + str(local))
     #_, trajectories = read_hdf5_report(report_dir)
     trajectories = env.last_episode
-
+ 
     path =  trajectories['path']
+    if not path or not path.any(): # FIXME: does not work without a path, this is not optimal
+        return
+    # print(f"From plot_trajectory: {path}")
     path_taken = trajectories['path_taken']
     obstacles = trajectories['obstacles']
 
@@ -251,6 +255,11 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
         axis_min_y = env.vessel.position[1] - size
         axis_max_y = env.vessel.position[1] + size 
 
+    # elif env.dock:
+    #     axis_min_x = path_taken[0, :].min() - 200
+    #     axis_max_x = path_taken[0, :].max() + 200
+    #     axis_min_y = path_taken[1, :].min() - 200
+    #     axis_max_y = path_taken[1, :].max() + 200
     else:
         axis_min_x = path[0, :].min() - 200
         axis_max_x = path[0, :].max() + 200
@@ -519,6 +528,58 @@ def plot_trajectory(report_dir, env, fig_dir, local=False, size=100, fig_prefix=
     fig.savefig(os.path.join(fig_dir, '{}path.pdf'.format(fig_prefix)), format='pdf', bbox_inches='tight')
     plt.close(fig)
 
+def plot_obstacle(ax: Axes, obstacles):
+    for obst in obstacles:
+        #if isinstance(obst, CircularObstacle):
+        if not obst.static:
+            
+            if isinstance(obst, VesselObstacle):
+                x_arr = [elm[1][0] for elm in obst.trajectory]
+                y_arr = [elm[1][1] for elm in obst.trajectory]
+                ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
+
+            plt.arrow(
+                obst.boundary.centroid.coords[0][0],
+                obst.boundary.centroid.coords[0][1],
+                120*obst.dx,
+                120*obst.dy,
+                head_width=8,
+                color='black',
+                zorder=11
+            )
+
+    for obst in obstacles:
+        if isinstance(obst, CircularObstacle):
+            obst_object = plt.Circle(
+                obst.position,
+                obst.radius,
+                facecolor='tab:red',
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=10
+            )
+            obst_object.set_hatch('////')
+        elif isinstance(obst, PolygonObstacle):
+            obst_object = plt.Polygon(
+                np.array(obst.points), True,
+                facecolor='#C0C0C0',
+                edgecolor='black',
+                linewidth=0.5,
+            )
+        elif isinstance(obst, VesselObstacle):
+            obst_object = plt.Polygon(
+                np.array(list(obst.boundary.exterior.coords)), True,
+                facecolor='#C0C0C0',
+                edgecolor='red',
+                linewidth=0.5,
+            )
+        obst = ax.add_patch(obst_object)
+
+def plot_scenario_docking(env, fig_dir, fig_postfix='', show=True):
+    pass
+
+
+
 def plot_scenario(env, fig_dir, fig_postfix='', show=True):
     path = env.path(np.linspace(0, env.path.length, 1000))
 
@@ -549,52 +610,7 @@ def plot_scenario(env, fig_dir, fig_postfix='', show=True):
     axis_max = max(axis_max_x, axis_max_y)
     axis_min = min(axis_min_x, axis_min_y)
 
-    for obst in env.obstacles:
-        #if isinstance(obst, CircularObstacle):
-        if not obst.static:
-            
-            if isinstance(obst, VesselObstacle):
-                x_arr = [elm[1][0] for elm in obst.trajectory]
-                y_arr = [elm[1][1] for elm in obst.trajectory]
-                ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
-
-            plt.arrow(
-                obst.boundary.centroid.coords[0][0],
-                obst.boundary.centroid.coords[0][1],
-                120*obst.dx,
-                120*obst.dy,
-                head_width=8,
-                color='black',
-                zorder=11
-            )
-
-    for obst in env.obstacles:
-        if isinstance(obst, CircularObstacle):
-            obst_object = plt.Circle(
-                obst.position,
-                obst.radius,
-                facecolor='tab:red',
-                edgecolor='black',
-                linewidth=0.5,
-                zorder=10
-            )
-            obst_object.set_hatch('////')
-        elif isinstance(obst, PolygonObstacle):
-            obst_object = plt.Polygon(
-                np.array(obst.points), True,
-                facecolor='#C0C0C0',
-                edgecolor='black',
-                linewidth=0.5,
-            )
-        elif isinstance(obst, VesselObstacle):
-            obst_object = plt.Polygon(
-                np.array(list(obst.boundary.exterior.coords)), True,
-                facecolor='#C0C0C0',
-                edgecolor='red',
-                linewidth=0.5,
-            )
-        obst = ax.add_patch(obst_object)
-
+    plot_obstacle(ax, env.obstacles)
     
     ax.set_ylabel(r"North (km)")
     ax.set_xlabel(r"East (km)")

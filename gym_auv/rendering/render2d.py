@@ -10,6 +10,7 @@ Created by Haakon Robinson, based on OpenAI's gym.base_env.classical.rendering.p
 """
 
 import os
+from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
 import six
 import sys
 import pyglet
@@ -20,7 +21,7 @@ from numpy import sin, cos, arctan2
 from gym import error
 import torch as th
 import gym_auv.utils.geomutils as geom
-from gym_auv.objects.obstacles import CircularObstacle, PolygonObstacle, VesselObstacle
+from gym_auv.objects.obstacles import CircularObstacle, PolygonObstacle, VesselObstacle, LineObstacle
 from gym_auv.objects.vessel import _feasibility_pooling
 
 if "Apple" in sys.version:
@@ -77,7 +78,8 @@ class Viewer2D(object):
         self.onetime_geoms = []
         self.fixed_geoms = []
         self.transform = Transform()
-        self.camera_zoom = 1.5
+        # self.camera_zoom = 1.5
+        self.camera_zoom = 2.5
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -325,8 +327,10 @@ def make_circle(origin=(0,0), radius=10, res=30, filled=True, start_angle=0, end
 
 
 def make_polygon(v, filled=True):
-    if filled: return FilledPolygon(v)
-    else: return PolyLine(v, True)
+    if filled:
+        return FilledPolygon(v)
+    else:
+        return PolyLine(v, True)
 
 
 def make_polyline(v):
@@ -477,7 +481,30 @@ def _render_obstacles(env):
 
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
+        elif isinstance(obst, LineObstacle):
+            env._viewer2d.draw_shape(obst.points, color=c)
 
+# FIXME:
+def _render_dock(env):
+    red = (0.9,0,0)
+    green = (0, 0.9, 0)
+ 
+    if isinstance(env.dock, RectangularDock):
+        # print("Drawing dock")
+        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
+
+    # print(f"using {list(env.dock.boundary.exterior.coords)} to draw dock")
+    if isinstance(env.dock, TetrisDock):
+        bad_region = env.dock.boundary.exterior.coords
+        # print(f"Drawing bad docking region: {list( bad_region )}")
+        env._viewer2d.draw_shape(vertices=list(bad_region) , color=red)
+
+        good_region = env.dock.get_good_zone().exterior.coords
+        env._viewer2d.draw_shape(vertices=list(good_region), color=green)
+        
+    elif isinstance(env.dock, SimpleDock):
+        env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
+ 
 
 def _render_tiles(env, win):
     global env_bg
@@ -520,7 +547,6 @@ def _render_indicators(env, W, H):
     gl.glVertex3f(W, 0, 0)
     gl.glVertex3f(W, 5*h, 0)
     gl.glVertex3f(0, 5*h, 0)
-    gl.glVertex3f(0, 0, 0)
     gl.glEnd()
 
     env._viewer2d.reward_text_field.text = "Current Reward:"
@@ -546,24 +572,40 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.lambda_text_field.text = "Speed:"
     env._viewer2d.lambda_text_field.draw()
-    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10) # why *10? 
+    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed) # took away *10? 
     env._viewer2d.lambda_value_field.draw()
 
-    env._viewer2d.eta_text_field.text = "CTE:"
-    env._viewer2d.eta_text_field.draw()
-    env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
-    env._viewer2d.eta_value_field.draw()
+    if not env.dock:
+        env._viewer2d.eta_text_field.text = "CTE:"
+        env._viewer2d.eta_text_field.draw()
+        env._viewer2d.eta_value_field.text = "{:2.1f}m".format(env.rewarder._vessel.req_latest_data()['navigation']['cross_track_error']*1000)
+        env._viewer2d.eta_value_field.draw()
+        env._viewer2d.navi_text_field.text = "Input:"
+        env._viewer2d.navi_text_field.draw()
+
+        # env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        number_of_states = len(env.vessel.NAVIGATION_FEATURES)
+        text = [":1.1f"] * (number_of_states +1)
+        # print(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        env._viewer2d.navi_value_field.text = " ".join(text).format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
+        env._viewer2d.navi_value_field.draw()
 
     env._viewer2d.input_text_field.text = "Input:"
     env._viewer2d.input_text_field.draw()
-    env._viewer2d.input_value_field.text = "T_u: {:2.2f} [N], T_r: {:2.2f} [Nm]".format(env.vessel._input[0], env.vessel._input[1])
+    env._viewer2d.input_value_field.text = "Right motor: {:2.2f} [N], Left motor: {:2.2f} [N]".format(env.vessel._input[0], env.vessel._input[1])
     env._viewer2d.input_value_field.draw()
-
-    env._viewer2d.navi_text_field.text = "Input:"
-    env._viewer2d.navi_text_field.draw()
-    env._viewer2d.navi_value_field.text = "{:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f} {:1.1f}".format(*[env.vessel._last_navi_state_dict[state] for state in env.vessel.NAVIGATION_FEATURES])
-    env._viewer2d.navi_value_field.draw()
-
+    
+    env._viewer2d.heading_err_text_field.text = "Heading error:"
+    env._viewer2d.heading_err_text_field.draw()
+    env._viewer2d.heading_err_value_field.text = "{:2.2f}rad".format(env.vessel._last_navi_state_dict['boat_to_dock_heading_error'])
+    env._viewer2d.heading_err_value_field.draw()
+    
+    
+    env._viewer2d.goal_distance_text_field.text = "Goal distance:"
+    env._viewer2d.goal_distance_text_field.draw()
+    env._viewer2d.goal_distance_value_field.text = "{:2.2f}m".format(env.vessel._last_navi_state_dict['goal_distance'])
+    env._viewer2d.goal_distance_value_field.draw()
+    
 def render_env(env, mode):
     global rot_angle
 
@@ -574,6 +616,10 @@ def render_env(env, mode):
         #_render_interceptions(env)
         if env.path is not None:
             _render_path(env)
+
+        if env.dock is not None:
+            _render_dock(env)
+
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
@@ -596,13 +642,15 @@ def render_env(env, mode):
         if env.config["show_indicators"]:
             _render_indicators(env, WINDOW_W, WINDOW_H)
 
-    scroll_x = env.vessel.position[0]
-    scroll_y = env.vessel.position[1]
+    scroll_x = 0    # env.vessel.position[0]
+    scroll_y = 0    # env.vessel.position[1]
     ship_angle = -env.vessel.heading + np.pi/2
     if (rot_angle is None):
         rot_angle = ship_angle
     else:
         rot_angle += CAMERA_ROTATION_SPEED * geom.princip(ship_angle - rot_angle)
+    
+    rot_angle = np.pi/2
 
     if DYNAMIC_ZOOM:
         if (int(env.t_step/1000) % 2 == 0):
@@ -695,5 +743,19 @@ def init_env_viewer(env):
     env._viewer2d.navi_value_field = pyglet.text.Label('0000', font_size=10,
                                                         x=260, y=WINDOW_H - 170.00, anchor_x='right', anchor_y='center',
                                                         color=(0, 0, 0, 255))
+    # docking navigation
+    
+    env._viewer2d.heading_err_text_field = pyglet.text.Label('0000', font_size=10,
+                                                       x=20, y=WINDOW_H - 170.00, anchor_x='left', anchor_y='center',
+                                                       color=(0, 0, 0, 255))
+    env._viewer2d.heading_err_value_field = pyglet.text.Label('0000', font_size=10,
+                                                    x=260, y=WINDOW_H - 170.00, anchor_x='right', anchor_y='center',
+                                                    color=(0, 0, 0, 255))
+    env._viewer2d.goal_distance_text_field = pyglet.text.Label('0000', font_size=10,
+                                                       x=20, y=WINDOW_H - 190.00, anchor_x='left', anchor_y='center',
+                                                       color=(0, 0, 0, 255))
+    env._viewer2d.goal_distance_value_field = pyglet.text.Label('0000', font_size=10,
+                                                    x=260, y=WINDOW_H - 190.00, anchor_x='right', anchor_y='center',
+                                                    color=(0, 0, 0, 255))
 
     print('Initialized 2D viewer')
