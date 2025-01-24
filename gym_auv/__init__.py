@@ -19,12 +19,12 @@ def sector_partition_fun(env, isensor, c=0.1):
 
 DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
-    "min_cumulative_reward": -2000,  # Minimum cumulative reward received before episode ends
-    "max_timesteps": 10000,  # Maximum amount of timesteps before episode ends
+    "min_cumulative_reward": -10000,  # Minimum cumulative reward received before episode ends
+    "max_timesteps": 2500,  # Maximum amount of timesteps before episode ends
     "ui": 5,  # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,  # Minimum path progress before scenario is considered successful and the episode ended
     # ---- SIMULATION ---- #
-    "t_step_size": 1.0,  # 1.0 originally                             # Length of simulation timestep [s]
+    "t_step_size": 0.1,  # 1.0 originally                             # Length of simulation timestep [s]
     "sensor_frequency": 1.0,  # Sensor execution frequency (0.0 = never execute, 1.0 = always execute)
     "observe_frequency": 1.0,  # Frequency of using actual obstacles instead of virtual ones for detection
     # ---- VESSEL ---- #
@@ -36,11 +36,11 @@ DEFAULT_CONFIG = {
     "render_distance": 300,  # 3D rendering render distance [m]
     "sensing": True,  # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,  # Interval for loading nearby obstacles
-    "n_sensors_per_sector": 20,  # Number of rangefinder sensors within each sector
-    "n_sectors": 9,  # Number of sensor sectors
+    "n_sensors_per_sector": 10,  # Number of rangefinder sensors within each sector
+    "n_sectors": 18,  # Number of sensor sectors
     "sector_partition_fun": sector_partition_fun,  # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,  # Whether to activate the sectors in a rotating pattern (for performance reasons)
-    "sensor_range": 150.0,  # Range of rangefinder sensors [m]
+    "sensor_range": 40.0,  # Range of rangefinder sensors [m]
     "sensor_log_transform": True,  # Whether to use a log. transform when calculating closeness                 #
     "observe_obstacle_fun": observe_obstacle_fun,  # Function that outputs whether an obstacle should be observed (True),
     # or if a virtual obstacle based on the latest reading should be used (False).
@@ -71,7 +71,7 @@ REALWORLD_CONFIG["render_distance"] = 300  # 2000
 
 DOCKING_CONFIG = DEFAULT_CONFIG.copy()
 DOCKING_CONFIG["min_goal_distance"] = 4
-DOCKING_CONFIG["max_timesteps"] = 10000  # Maximum amount of timesteps before episode ends
+DOCKING_CONFIG["max_timesteps"] = 2000  # Maximum amount of timesteps before episode ends
 
 SCENARIOS = {
     "TestScenario0-v0": {
@@ -173,6 +173,14 @@ SCENARIOS = {
     },
         "SimpleDockTestScenario-v0": {
         "entry_point": "gym_auv.envs:SimpleDockTestScenario0",
+        "config": DOCKING_CONFIG,
+    },
+        "SimpleDockTestScenario-v1": {
+        "entry_point": "gym_auv.envs:SimpleDockTestScenario1",
+        "config": DOCKING_CONFIG,
+    },
+        "NyhavnaScenario-v0": {
+        "entry_point": "gym_auv.envs:NyhavnaScenario0",
         "config": DOCKING_CONFIG,
     }
 }

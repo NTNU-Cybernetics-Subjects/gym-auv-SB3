@@ -4,12 +4,12 @@ import random
 import math
 
 from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
-from gym_auv.objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder
+from gym_auv.objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder, DockingPenelizerRewarderForSimpleDock
 
 import gym_auv.utils.geomutils as geom
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.path import RandomCurveThroughOrigin, Path
-from gym_auv.objects.obstacles import CircularObstacle, VesselObstacle
+from gym_auv.objects.obstacles import CircularObstacle, VesselObstacle, LineObstacle, PolygonObstacle
 from gym_auv.environment import BaseEnvironment
 from gym_auv.utils import helpers
 
@@ -258,21 +258,172 @@ class SimpleDockTestScenario0(BaseEnvironment):
     
     def _generate(self) -> None:
         self.path = None
-        self._rewarder_class = DockingRewarder
+        self._rewarder_class = DockingPenelizerRewarderForSimpleDock
 
         init_state = (0,0)
         init_angle = 0
 
+        self.obstacles = []
+        
         self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
+        
+                # circular obstacles
+        num_obstacles = 1
+        for _ in range(num_obstacles):
+            obst_position = helpers.get_random_position_around_boat(50, 55)
+            obst_radius = 5   # np.random.uniform(5, 7)
+            self.obstacles.append(CircularObstacle(obst_position, obst_radius))
 
         # This is y,x ??
         # dock_pos = (75, -50)
-        dock_pos = (75, 0)
+        dock_pos = (100, 0)
 
         # Initialize dock, position, width, height
         self.dock = SimpleDock(dock_pos, 4., 4.)
 
 
+class SimpleDockTestScenario1(BaseEnvironment):
+    """Simple environment with the dock at a fixed position, 
+        either to left, right, front or back, always 75 m distance."""
+    
+    def _generate(self) -> None:
+        self.path = None
+        self._rewarder_class = DockingPenelizerRewarderForSimpleDock
+
+        init_state = (0,0)
+        init_angle = 0
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
+        self.obstacles = []
+        
+        # circular obstacles
+        num_obstacles = 7
+        for _ in range(num_obstacles):
+            obst_position = helpers.get_random_position_around_boat(50, 55)
+            obst_radius = 5   # np.random.uniform(5, 7)
+            self.obstacles.append(CircularObstacle(obst_position, obst_radius))
+            
+        
+        # Make dock spawn either in front, back, left or right of the vessel
+        dock_pos = helpers.get_dock_position_front_back_left_or_right(100)
+
+        # # OBSTACLES AT FIXED POSITIONS
+        # # circular obstacles always in front, back, left and right of vessel
+        # obst_distance = 50
+        # obst_radius = 5
+        # front = (obst_distance, 0)
+        # front_w_offset = (obst_distance, 15)
+        # front_w_offset2 = (obst_distance, -15)
+        # back = (-obst_distance, 0)
+        # back_w_offset = (-obst_distance, 15)
+        # back_w_offset2 = (-obst_distance, -15)
+        # left = (0, obst_distance)
+        # left_w_offset = (15, obst_distance)
+        # left_w_offset2 = (-15, obst_distance)
+        # right = (0, -obst_distance)
+        # right_w_offset = (15, -obst_distance)
+        # right_w_offset2 = (-15, -obst_distance)
+        
+        # # circular obstacles
+        # self.obstacles.append(CircularObstacle(front, obst_radius))
+        # self.obstacles.append(CircularObstacle(back, obst_radius))
+        # self.obstacles.append(CircularObstacle(left, obst_radius))
+        # self.obstacles.append(CircularObstacle(right, obst_radius))
+        # self.obstacles.append(CircularObstacle(front_w_offset, obst_radius))
+        # self.obstacles.append(CircularObstacle(back_w_offset, obst_radius))
+        # self.obstacles.append(CircularObstacle(left_w_offset, obst_radius))
+        # self.obstacles.append(CircularObstacle(right_w_offset, obst_radius))
+        # self.obstacles.append(CircularObstacle(back_w_offset2, obst_radius))
+        # self.obstacles.append(CircularObstacle(left_w_offset2, obst_radius))
+        # self.obstacles.append(CircularObstacle(right_w_offset2, obst_radius))
+        # self.obstacles.append(CircularObstacle(front_w_offset2, obst_radius))
+            
+        # Initialize dock, position, width, height
+        self.dock = SimpleDock(dock_pos, 4., 4.)
+        
+class NyhavnaScenario0(BaseEnvironment):
+    """Environment looking like Nyhavna. Boat spawning in the middle of a square,
+        and dock at random position along the square."""
+    
+    def _generate(self) -> None:
+        self.path = None
+        self._rewarder_class = DockingPenelizerRewarderForSimpleDock  # DockingPenelizerRewarderForSimpleDock
+        self.obstacles = []
+
+        init_state = (0,0)
+        init_angle = 0
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
+        
+        square_side_size = 101
+        
+        # Polygon in the shape of a bar bar in front of boat
+        poly_pos1 = (square_side_size, -square_side_size)
+        poly_pos2 = (square_side_size, square_side_size)
+        poly_pos3 = (square_side_size + 100, square_side_size)
+        poly_pos4 = (square_side_size + 100, -square_side_size)
+        poly_obstacle = PolygonObstacle([poly_pos1, poly_pos2, poly_pos3, poly_pos4])
+        self.obstacles.append(poly_obstacle)
+        
+        # Poly in the shape of a bar in left of boat
+        poly_pos1 = (square_side_size, -square_side_size)
+        poly_pos2 = (square_side_size, -square_side_size - 100)
+        poly_pos3 = (-square_side_size, -square_side_size - 100)
+        poly_pos4 = (-square_side_size, -square_side_size)
+        poly_obstacle = PolygonObstacle([poly_pos1, poly_pos2, poly_pos3, poly_pos4])
+        self.obstacles.append(poly_obstacle)
+        
+        # Poly in the shape of a bar in right of boat
+        poly_pos1 = (square_side_size, square_side_size)
+        poly_pos2 = (square_side_size, square_side_size + 100)
+        poly_pos3 = (-square_side_size, square_side_size + 100)
+        poly_pos4 = (-square_side_size, square_side_size)
+        poly_obstacle = PolygonObstacle([poly_pos1, poly_pos2, poly_pos3, poly_pos4])
+        self.obstacles.append(poly_obstacle)
+        
+        # Poly in the shape of a bar in back of boat
+        poly_pos1 = (-square_side_size, -square_side_size)
+        poly_pos2 = (-square_side_size - 100, -square_side_size)
+        poly_pos3 = (-square_side_size - 100, square_side_size)
+        poly_pos4 = (-square_side_size, square_side_size)
+        poly_obstacle = PolygonObstacle([poly_pos1, poly_pos2, poly_pos3, poly_pos4])
+        self.obstacles.append(poly_obstacle)
+        
+        
+        
+        pos1 = (square_side_size, -square_side_size)
+        pos2 = (square_side_size, square_side_size)
+        pos3 = (square_side_size, -square_side_size)
+        line_obstacle = LineObstacle([pos1, pos2])
+        self.obstacles.append(line_obstacle)
+
+        
+        # Place dock randomly along the rectangle
+        dock_pos1 = ((square_side_size - 2), np.random.uniform(-(square_side_size - 2), (square_side_size - 2)))
+        dock_pos2 = (-(square_side_size - 2), np.random.uniform(-(square_side_size - 2), (square_side_size - 2)))
+        dock_pos3 = (np.random.uniform(-(square_side_size - 2), (square_side_size - 2)), (square_side_size - 2))
+        dock_pos4 = (np.random.uniform(-(square_side_size - 2), (square_side_size - 2)), -(square_side_size - 2))
+        
+        dock_positions = [dock_pos1, dock_pos2, dock_pos3, dock_pos4]
+        
+        dock_pos = dock_positions[np.random.choice(len(dock_positions))]
+        
+        
+        # # Dock at random position around boat in a circle inside square
+        # dock_pos = helpers.get_random_position_around_boat(20, 95)
+        
+        self.dock = SimpleDock(dock_pos, 4., 4.)
+        
+        # circular obstacles
+        num_obstacles = 12
+        for _ in range(num_obstacles):
+            obst_position = helpers.get_random_position_around_boat(40, 70)
+            obst_radius = 5   # np.random.uniform(5, 7)
+            self.obstacles.append(CircularObstacle(obst_position, obst_radius))
+            
+        
+        
+        
 
 
 

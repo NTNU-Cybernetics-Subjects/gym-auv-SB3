@@ -4,7 +4,7 @@ import gym_auv.utils.geomutils as geom
 import gym_auv.utils.helpers as helpers
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.path import RandomCurveThroughOrigin, Path
-from gym_auv.objects.obstacles import PolygonObstacle, VesselObstacle, CircularObstacle
+from gym_auv.objects.obstacles import VesselObstacle, CircularObstacle
 from gym_auv.environment import BaseEnvironment
 from gym_auv.objects.rewarder import ColregRewarder, ColavRewarder, ColavRewarder2, PathRewarder
 import shapely.geometry, shapely.errors

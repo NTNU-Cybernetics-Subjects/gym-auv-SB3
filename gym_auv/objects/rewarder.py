@@ -471,6 +471,8 @@ class DockingRewarder(BaseRewarder):
 
         living_penalty = 0
         reward = closure_reward + docking_reward - living_penalty
+        
+        self.last_progress = progress
 
         return reward
 
@@ -688,3 +690,113 @@ class DockingRewarderAdvanced(BaseRewarder):
 
 
 
+class DockingPenelizerRewarderForSimpleDock(BaseRewarder):
+    def __init__(self, vessel, test_mode):
+        super().__init__(vessel, test_mode)
+        self.params['gamma_theta'] = 10.0
+        self.params['gamma_x'] = 0.1
+        self.params['gamma_v_y'] = 1.0
+        self.params['gamma_y_e'] = 5.0
+        self.params['penalty_yawrate'] = 0.0  # not used
+        self.params['penalty_torque_change'] = 0.0
+        self.params['cruise_speed'] = 0.1
+        self.params['neutral_speed'] = 0.05
+        self.params['negative_multiplier'] = 2.0
+        self.params['collision'] = -1000.0
+        self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
+        self.params['eta'] = 0  # _sample_eta()
+
+        self.last_progress = 0
+        
+
+    N_INSIGHTS = 0
+
+    def insight(self):
+        return np.array([])
+        # return np.array([np.log10(self.params['lambda'])])
+
+    def calculate(self):
+        latest_data = self._vessel.req_latest_data()
+        nav_states = latest_data['navigation']
+        collision = latest_data['collision']
+        progress = latest_data['progress']
+        reached_goal = latest_data['reached_goal']
+
+        navigation_data = latest_data['navigation']
+        surge = navigation_data['surge_velocity']
+        sway = navigation_data['sway_velocity']
+        yaw_rate = navigation_data['yaw_rate']
+        # dx = navigation_data['relative_goal_x']
+        # dy = navigation_data['relative_goal_y']
+        goal_distance = navigation_data["goal_distance"]
+        attack_angle = navigation_data['boat_to_dock_heading_error']
+        #heading_angle = navigation_data['heading_error']
+
+        
+
+        # # last_progress = latest_data['last_progress']
+
+        # if collision:
+        #     reward = - 1000  # self.params["collision"] # * (1 - self.params["lambda"])
+        #     print("COLLISION")
+        #     return reward
+
+        if reached_goal:
+            reward = 2000
+            return reward
+
+        # reward = 0
+
+        # # Distance
+        # k1 = 0.01
+        # distance_reward = -k1 * abs(goal_distance)
+
+
+        # # algin toward docking pos
+        # k2 = 0.01
+        # dock_align_reward = -k2 * abs(attack_angle)
+
+        # # added after 
+        # # Align parallel to dock
+        # # k4 = 0.05
+        # # algin_reward = -k4 * abs(attack_angle)
+
+        # # Velocity
+        # k3  = 0.005
+        # velocity_reward = -k3 * round(np.sqrt((surge**2 + sway **2 + yaw_rate**2)),5)
+
+        # # print(f"distance_reward: {distance_reward}, algin_reward: {algin_reward}, velocity_reward: {velocity_reward}")
+        # reward = distance_reward # + velocity_reward # + dock_align_reward
+        
+        
+        if collision:
+            reward = self.params["collision"] # * (1 - self.params["lambda"])  # -5000
+            return reward
+
+        reward = 0
+
+        # Extracting navigation states
+        k1 = 0.001
+        goal_error = -k1*goal_distance
+        heading_error = attack_angle
+
+        # Calculating path following reward component
+        #cross_track_performance = np.exp(-self.params['gamma_y_e'] * np.abs(cross_track_error))
+        #path_reward = (1 + np.cos(heading_error) * self._vessel.speed / self._vessel.max_speed) * (
+        #           1 + cross_track_performance) - 1
+
+        # Calculate path reward
+        # speed_term = self._vessel.speed / self._vessel.max_speed
+        # cte_term = 1 / (np.abs(cross_track_error) + 1)      # 1 if on path, smaller otherwise
+        k2 = 0.001
+        heading_term = - abs(k2*heading_error)            # 1 if heading in right dir, 0 when heading in opposite dir.
+        path_reward = heading_term + heading_term # * speed_term  # 1 if on path heading in right dir at max speed
+                                                            # 0 if heading in opposite dir, small if right dir but far from path.
+
+        # Calculating living penalty: 0.5*(2*0.05 + 1) = 0.05+0.5 = 0.55
+        # living_penalty = 0.055 # 1.0 # 0.55
+
+        # Calculating total reward
+        reward = heading_term + goal_error # - living_penalty # path_reward - living_penalty
+
+        return reward

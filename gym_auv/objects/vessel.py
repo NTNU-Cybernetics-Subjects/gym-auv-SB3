@@ -539,7 +539,7 @@ class Vessel():
             self._docking_prosess_active = False
             self._docking_step_time = 0
 
-        required_docking_steps = 20 # TODO: Should this be config param?
+        required_docking_steps = 5 # TODO: Should this be config param?
         if self._docking_prosess_active and self._docking_step_time >= required_docking_steps:
             self._reached_goal = True
 

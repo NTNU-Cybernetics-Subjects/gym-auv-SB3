@@ -21,7 +21,7 @@ from numpy import sin, cos, arctan2
 from gym import error
 import torch as th
 import gym_auv.utils.geomutils as geom
-from gym_auv.objects.obstacles import CircularObstacle, PolygonObstacle, VesselObstacle
+from gym_auv.objects.obstacles import CircularObstacle, PolygonObstacle, VesselObstacle, LineObstacle
 from gym_auv.objects.vessel import _feasibility_pooling
 
 if "Apple" in sys.version:
@@ -78,8 +78,8 @@ class Viewer2D(object):
         self.onetime_geoms = []
         self.fixed_geoms = []
         self.transform = Transform()
-        #self.camera_zoom = 1.5
-        self.camera_zoom = 4.5
+        # self.camera_zoom = 1.5
+        self.camera_zoom = 2.5
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -481,6 +481,8 @@ def _render_obstacles(env):
 
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
+        elif isinstance(obst, LineObstacle):
+            env._viewer2d.draw_shape(obst.points, color=c)
 
 # FIXME:
 def _render_dock(env):
@@ -570,7 +572,7 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.lambda_text_field.text = "Speed:"
     env._viewer2d.lambda_text_field.draw()
-    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed*10) # why *10? 
+    env._viewer2d.lambda_value_field.text = "{:2.1f}m/s".format(env.rewarder._vessel.speed) # took away *10? 
     env._viewer2d.lambda_value_field.draw()
 
     if not env.dock:
@@ -590,7 +592,7 @@ def _render_indicators(env, W, H):
 
     env._viewer2d.input_text_field.text = "Input:"
     env._viewer2d.input_text_field.draw()
-    env._viewer2d.input_value_field.text = "T_u: {:2.2f} [N], T_r: {:2.2f} [Nm]".format(env.vessel._input[0], env.vessel._input[1])
+    env._viewer2d.input_value_field.text = "Right motor: {:2.2f} [N], Left motor: {:2.2f} [N]".format(env.vessel._input[0], env.vessel._input[1])
     env._viewer2d.input_value_field.draw()
     
     env._viewer2d.heading_err_text_field.text = "Heading error:"
@@ -640,13 +642,15 @@ def render_env(env, mode):
         if env.config["show_indicators"]:
             _render_indicators(env, WINDOW_W, WINDOW_H)
 
-    scroll_x = env.vessel.position[0]
-    scroll_y = env.vessel.position[1]
+    scroll_x = 0    # env.vessel.position[0]
+    scroll_y = 0    # env.vessel.position[1]
     ship_angle = -env.vessel.heading + np.pi/2
     if (rot_angle is None):
         rot_angle = ship_angle
     else:
         rot_angle += CAMERA_ROTATION_SPEED * geom.princip(ship_angle - rot_angle)
+    
+    rot_angle = np.pi/2
 
     if DYNAMIC_ZOOM:
         if (int(env.t_step/1000) % 2 == 0):
