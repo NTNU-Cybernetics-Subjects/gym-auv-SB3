@@ -3,8 +3,8 @@ import numpy as np
 import random
 import math
 
-from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
-from gym_auv.objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder, DockingPenelizerRewarderForSimpleDock
+from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock, SimpleDockWAngle
+from gym_auv.objects.rewarder import DockingRewarder, DockingRewarderAdvanced, DockingStraightRewarder, DockingPenelizerRewarder, DockingPenelizerRewarderForSimpleDock, StrandRewarder
 
 import gym_auv.utils.geomutils as geom
 from gym_auv.objects.vessel import Vessel
@@ -420,6 +420,40 @@ class NyhavnaScenario0(BaseEnvironment):
             obst_position = helpers.get_random_position_around_boat(40, 70)
             obst_radius = 5   # np.random.uniform(5, 7)
             self.obstacles.append(CircularObstacle(obst_position, obst_radius))
+            
+
+class StrandBaseCase0(BaseEnvironment):
+    """Environment looking like Strand. Boat spawning in the middle of a square,
+        and dock at random position along the square."""
+    
+    def _generate(self) -> None:
+        self.path = None
+        self._rewarder_class = StrandRewarder  # DockingPenelizerRewarderForSimpleDock
+        self.obstacles = []
+        
+        # Random initial x position between 5.0 and 9.5
+        x = np.random.uniform(5.0, 9.5)
+        y = np.random.uniform(-4, 4)               
+        
+        init_pos = (x,y)
+        
+        if y < 0:
+            init_angle = np.random.uniform(150, 180)
+        elif y > 0:
+            init_angle = np.random.uniform(180, 210)
+        else:
+            init_angle = 0
+            
+        init_angle = init_angle*deg2rad
+
+        self.vessel = Vessel(self.config, np.hstack([init_pos, init_angle]))
+        
+        dock_pos = (0, 0)
+        dock_heading = 180*deg2rad
+        dock_width = 1
+        dock_height = 1
+        self.dock = SimpleDockWAngle(dock_pos, dock_width, dock_height, dock_heading)
+        
             
         
         

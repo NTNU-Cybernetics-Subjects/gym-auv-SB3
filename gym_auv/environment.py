@@ -54,7 +54,7 @@ class BaseEnvironment(gym.Env, ABC):
         self._n_sensors = self.config["n_sensors_per_sector"] * self.config["n_sectors"]
         self.n_navigation_obs = len(Vessel.NAVIGATION_FEATURES)
         self.n_perception_obs = self._n_sensors  # *self.config["n_sectors"]
-        self.n_observations = len(Vessel.NAVIGATION_FEATURES) + self.config["n_sectors"]
+        self.n_observations = len(Vessel.NAVIGATION_FEATURES) # + self.config["n_sectors"]
 
         self.episode = 0
         self.total_t_steps = 0
@@ -108,7 +108,8 @@ class BaseEnvironment(gym.Env, ABC):
             dtype=np.float32,
         )
         self._observation_space = gym.spaces.Dict(
-            {"perception": self._perception_space, "navigation": self._navigation_space}
+            # {"perception": self._perception_space, "navigation": self._navigation_space}
+            {"navigation": self._navigation_space}
         )
 
         # Initializing rendering
@@ -214,12 +215,15 @@ class BaseEnvironment(gym.Env, ABC):
             The observation of the environment.
         """
         navigation_states = self.vessel.navigate(self.path, self.dock)
-        if bool(self.config["sensing"]):
-            perception_states = self.vessel.perceive(self.obstacles, dock=self.dock)
-        else:
-            perception_states = []
+        if self.dock is None:
+            if bool(self.config["sensing"]):
+                perception_states = self.vessel.perceive(self.obstacles, dock=self.dock)
+            else:
+                perception_states = []
 
-        obs = {"perception": perception_states, "navigation": navigation_states}
+            obs = {"perception": perception_states, "navigation": navigation_states}
+        else:
+            obs = {"navigation": navigation_states}
         return obs
 
     def step(self, action: list) -> (np.ndarray, float, bool, dict):
@@ -260,7 +264,6 @@ class BaseEnvironment(gym.Env, ABC):
 
         # Updating vessel state from its dynamics model
         self.vessel.step(action)
-        # print(f"Velocity from environment {self.vessel.velocity}")
 
         # Getting observation vector
         obs = self.observe()

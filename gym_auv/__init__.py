@@ -70,8 +70,15 @@ REALWORLD_CONFIG["render_distance"] = 300  # 2000
 # REALWORLD_CONFIG["sensor_frequency"] = 0.5   # HALVOR CREATED; THOMAS COMMENTED
 
 DOCKING_CONFIG = DEFAULT_CONFIG.copy()
-DOCKING_CONFIG["min_goal_distance"] = 4
+DOCKING_CONFIG["min_goal_distance"] = 1
 DOCKING_CONFIG["max_timesteps"] = 2000  # Maximum amount of timesteps before episode ends
+DOCKING_CONFIG["max_x_pos"] = 10
+DOCKING_CONFIG["min_x_pos"] = -2
+DOCKING_CONFIG["max_y_pos"] = 4
+DOCKING_CONFIG["min_y_pos"] = -4
+DOCKING_CONFIG["max_surge"] = 0.5
+DOCKING_CONFIG["max_heading_error"] = 45*np.pi/180
+
 
 SCENARIOS = {
     "TestScenario0-v0": {
@@ -181,6 +188,10 @@ SCENARIOS = {
     },
         "NyhavnaScenario-v0": {
         "entry_point": "gym_auv.envs:NyhavnaScenario0",
+        "config": DOCKING_CONFIG,
+    },
+        "StrandBaseCase0-v0": {
+        "entry_point": "gym_auv.envs:StrandBaseCase0",
         "config": DOCKING_CONFIG,
     }
 }

@@ -10,7 +10,7 @@ Created by Haakon Robinson, based on OpenAI's gym.base_env.classical.rendering.p
 """
 
 import os
-from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock
+from gym_auv.objects.dock import RectangularDock, TetrisDock, SimpleDock, SimpleDockWAngle
 import six
 import sys
 import pyglet
@@ -79,7 +79,7 @@ class Viewer2D(object):
         self.fixed_geoms = []
         self.transform = Transform()
         # self.camera_zoom = 1.5
-        self.camera_zoom = 2.5
+        self.camera_zoom = 8.0
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -502,7 +502,7 @@ def _render_dock(env):
         good_region = env.dock.get_good_zone().exterior.coords
         env._viewer2d.draw_shape(vertices=list(good_region), color=green)
         
-    elif isinstance(env.dock, SimpleDock):
+    elif isinstance(env.dock, SimpleDock) or isinstance(env.dock, SimpleDockWAngle):
         env._viewer2d.draw_shape(vertices=list(env.dock.boundary.exterior.coords), color=green)
  
 
@@ -597,7 +597,7 @@ def _render_indicators(env, W, H):
     
     env._viewer2d.heading_err_text_field.text = "Heading error:"
     env._viewer2d.heading_err_text_field.draw()
-    env._viewer2d.heading_err_value_field.text = "{:2.2f}rad".format(env.vessel._last_navi_state_dict['boat_to_dock_heading_error'])
+    env._viewer2d.heading_err_value_field.text = "{:2.2f}rad".format(env.vessel._last_navi_state_dict['heading_error'])
     env._viewer2d.heading_err_value_field.draw()
     
     
@@ -606,13 +606,18 @@ def _render_indicators(env, W, H):
     env._viewer2d.goal_distance_value_field.text = "{:2.2f}m".format(env.vessel._last_navi_state_dict['goal_distance'])
     env._viewer2d.goal_distance_value_field.draw()
     
+    env._viewer2d.cartesian_goal_distance_text_field.text = "(x,y) distance:"
+    env._viewer2d.cartesian_goal_distance_text_field.draw()
+    env._viewer2d.cartesian_goal_distance_value_field.text = "x distance: {:2.2f} m, y distance: {:2.2f}".format(env.vessel._last_navi_state_dict['relative_goal_x'], env.vessel._last_navi_state_dict['relative_goal_y'])
+    env._viewer2d.cartesian_goal_distance_value_field.draw()
+    
 def render_env(env, mode):
     global rot_angle
 
     def render_objects():
         t = env._viewer2d.transform
         t.enable()
-        _render_sensors(env)
+        # _render_sensors(env)
         #_render_interceptions(env)
         if env.path is not None:
             _render_path(env)
@@ -756,6 +761,12 @@ def init_env_viewer(env):
                                                        color=(0, 0, 0, 255))
     env._viewer2d.goal_distance_value_field = pyglet.text.Label('0000', font_size=10,
                                                     x=260, y=WINDOW_H - 190.00, anchor_x='right', anchor_y='center',
+                                                    color=(0, 0, 0, 255))
+    env._viewer2d.cartesian_goal_distance_text_field = pyglet.text.Label('0000', font_size=10,
+                                                       x=20, y=WINDOW_H - 210.00, anchor_x='left', anchor_y='center',
+                                                       color=(0, 0, 0, 255))
+    env._viewer2d.cartesian_goal_distance_value_field = pyglet.text.Label('0000', font_size=10,
+                                                    x=360, y=WINDOW_H - 210.00, anchor_x='right', anchor_y='center',
                                                     color=(0, 0, 0, 255))
 
     print('Initialized 2D viewer')

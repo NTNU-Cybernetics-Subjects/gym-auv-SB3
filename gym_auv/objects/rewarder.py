@@ -800,3 +800,112 @@ class DockingPenelizerRewarderForSimpleDock(BaseRewarder):
         reward = heading_term + goal_error # - living_penalty # path_reward - living_penalty
 
         return reward
+    
+
+class StrandRewarder(BaseRewarder):
+    # Rewarder as implemented in the Strand project
+    
+    
+    def __init__(self, vessel, test_mode):
+        super().__init__(vessel, test_mode)
+        self.params['gamma_theta'] = 10.0
+        self.params['gamma_x'] = 0.1
+        self.params['gamma_v_y'] = 1.0
+        self.params['gamma_y_e'] = 5.0
+        self.params['penalty_yawrate'] = 0.0  # not used
+        self.params['penalty_torque_change'] = 0.0
+        self.params['cruise_speed'] = 0.1
+        self.params['neutral_speed'] = 0.05
+        self.params['negative_multiplier'] = 2.0
+        self.params['collision'] = -1000.0
+        self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
+        self.params['eta'] = 0  # _sample_eta()
+        
+        self.prev_goal_distance = self._vessel.req_latest_data()['navigation']['goal_distance']
+        self.step_number = 0
+    N_INSIGHTS = 0
+
+    def insight(self):
+        return np.array([])
+        # return np.array([np.log10(self.params['lambda'])])
+
+    def calculate(self):
+        # Extracting the latest data
+        latest_data = self._vessel.req_latest_data()
+        nav_states = latest_data['navigation']
+        collision = latest_data['collision']
+        progress = latest_data['progress']
+        reached_goal = latest_data['reached_goal']
+
+        # Extracting Navigation states
+        navigation_data = latest_data['navigation']
+        surge = navigation_data['surge_velocity']
+        sway = navigation_data['sway_velocity']
+        yaw_rate = navigation_data['yaw_rate']
+        x_error = navigation_data['relative_goal_x']
+        y_error = navigation_data['relative_goal_y']
+        heading_error = navigation_data['heading_error']   
+        goal_distance = navigation_data["goal_distance"]
+        
+        # Differentiated euclidean distance reward
+        timestep = self._vessel.config["t_step_size"]
+        e_ddot = (goal_distance - self.prev_goal_distance)/timestep
+        self.prev_goal_distance = goal_distance
+        
+        C_ddot = 1
+        K = 1
+        r_ddot = - C_ddot/2 * (np.tanh(K*e_ddot) + 1)
+        
+        # Heading reward
+        C_heading = 1.5
+        std_heading = 0.17
+        
+        if goal_distance < 3 and e_ddot < 0:
+            r_heading = - C_heading * np.exp(-(heading_error**2/(2*std_heading**2)))
+        else:
+            r_heading = 0
+            
+        # Position reward
+        C_pos = 2.0
+        std_pos = 2.5
+        
+        if heading_error <= np.pi/2 and e_ddot < 0:
+            r_pos = - C_pos * np.exp(-((goal_distance**2)/(2*std_pos**2)))
+        else:
+            r_pos = 0
+        
+        # Surge reward
+        if goal_distance > 3:
+            u_desired = 1
+        else:
+            u_desired = 0.2
+        C_u = 2.0
+        alpha = 0.5
+        std_u = 0.05
+            
+        r_u = (C_u + alpha) * np.exp(-((surge - u_desired)**2/(2*std_u**2))) - alpha
+        
+        # Step number penalty
+        C_n = 2.0
+        beta = 1.5
+        self.step_number = self._vessel._step_counter
+        max_steps = self._vessel.config["max_timesteps"]
+        r_n = C_n*(self.step_number/max_steps)**beta
+        
+        # Action penalty
+        # TODO
+        
+        # Unsuccesful spisode penalty
+        if collision or self.step_number > max_steps:
+            r_collision = -200
+        else:
+            r_collision = 0
+        
+        # Success reward
+        if reached_goal:
+            r_success = 300
+        else:
+            r_success = 0
+        
+        # Summing up the rewards
+        return r_ddot + r_heading + r_pos + r_n + r_u + r_collision + r_success

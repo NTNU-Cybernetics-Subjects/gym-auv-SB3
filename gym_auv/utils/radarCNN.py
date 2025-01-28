@@ -87,15 +87,20 @@ class RadarCNN(BaseFeaturesExtractor):
         return feat
 
 class NavigatioNN(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 8):
         super(NavigatioNN, self).__init__(observation_space, features_dim=features_dim)
 
         self.passthrough = nn.Identity()
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        shape = observations.shape
-        observations = observations[:,0,:].reshape(shape[0], shape[-1])
-        return self.passthrough(observations)
+        # navigation_obs = observations["navigation"]
+        # # changed from shape = observations.shape
+        # shape = navigation_obs.shape
+        # observations = navigation_obs[:,0,:].reshape(shape[0], shape[-1])
+        # return self.passthrough(navigation_obs)
+        navigation_obs = observations["navigation"]  # Extract the "navigation" key
+        return self.passthrough(navigation_obs.squeeze(1))  # Squeeze the singleton dimension
+
 
 class PerceptionNavigationExtractor(BaseFeaturesExtractor):
     """

@@ -4,7 +4,7 @@ This module implements an AUV that is simulated in the horizontal plane.
 import numpy as np
 import numpy.linalg as linalg
 from itertools import islice, chain, repeat
-from gym_auv.objects.dock import BaseDock, TetrisDock
+from gym_auv.objects.dock import BaseDock, TetrisDock, SimpleDockWAngle
 import shapely.geometry, shapely.errors, shapely.strtree, shapely.ops, shapely.prepared
 from scipy.integrate import solve_ivp
 
@@ -121,13 +121,15 @@ class Vessel():
         'sway_velocity',
         'yaw_rate',
         # 'look_ahead_heading_error',
-        # 'heading_error',
+        'heading_error',
         # 'cross_track_error',
         'goal_distance',
         # 'docking_active',
-        # 'relative_goal_x',
-        # 'relative_goal_y',
-        'boat_to_dock_heading_error'
+        'relative_goal_x',
+        'relative_goal_y',
+        # 'boat_to_dock_heading_error',
+        # 'collision',
+        'time_step'
     ]
 
     def __init__(self, config:dict, init_state:np.ndarray, width:float=1) -> None:
@@ -166,10 +168,15 @@ class Vessel():
         self._virtual_environment = None
 
         # -- DOCKING --
-        self._docking_step_time = 0
-        self._docking_prosess_active = False
+        self._desired_euclidian_goal_distance = self.config["min_goal_distance"]
+        self.desired_surge_velocity = self.config["max_surge"]
+        self._desired_heading_error = self.config["max_heading_error"]
         self._last_distance_to_goal = 1000000
         self._last_progress = 0
+        self.max_x_pos = self.config["max_x_pos"]
+        self.min_x_pos = self.config["min_x_pos"]
+        self.max_y_pos = self.config["max_y_pos"]
+        self.min_y_pos = self.config["min_y_pos"]
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -323,8 +330,6 @@ class Vessel():
         self._nearby_obstacles = []
 
         # -- DOCKING ---
-        self._docking_step_time = 0
-        self._docking_prosess_active = False
         self._last_distance_to_goal = 1000000
         self._last_progress = 0
 
@@ -454,6 +459,7 @@ class Vessel():
             # if collision:
             #     print(self.position)
             # collision = False
+            
 
         self._last_sector_dist_measurements = sector_closenesses
         self._last_sector_feasible_dists = sector_feasible_distances
@@ -471,7 +477,9 @@ class Vessel():
     # def perceive_docking(self, dock):
     #     dock_coords = 
         
-
+    def outside_map(self, x_max, x_min, y_max, y_min) -> bool:
+        """Checks if the vessel is within the specified map boundaries. Returns False if in map and True if outside."""
+        return x_min >= self.position[0] or self.position[0] >= x_max or y_min >= self.position[1] or self.position[1] >= y_max
 
     def navigate(self, path:Path, dock=None) -> np.ndarray:
         """Wrapper around path navigation states and docking navigation states."""
@@ -510,7 +518,7 @@ class Vessel():
         # if progress > self._progress:
         #     self._progress = progress
         
-        if isinstance(dock, TetrisDock):
+        if isinstance(dock, TetrisDock) or isinstance(dock, SimpleDockWAngle):
             # calculate dock angle error. (zero if paralel to docking vector)
             dock_angle_error = float(geom.princip(dock.angle - self.heading))
             # print(dock_angle_error)
@@ -520,28 +528,13 @@ class Vessel():
 
         else:
             dock_angle_error = 0
-            
-        # calculate the error between heading and vector pointing straight towards the dock
-        boat_to_dock_vector = goal_position - self.position
-        boat_to_dock_angle = np.arctan2(boat_to_dock_vector[1], boat_to_dock_vector[0])
-        boat_to_dock_heading_error = float(geom.princip(boat_to_dock_angle - self.heading)) # diff between heading and the direction of the dock
-            
-
-        # print(f"head_err {dock_angle_error}, boat_to_dock {boat_to_dock_heading_error}")
-        # print(f"goal dist:{ goal_distance }")
     
-        # Decide if vessel has reach the goal (inside good zone, for a time without crashing)
-        if goal_distance <= self.config["min_goal_distance"]:
-            self._docking_prosess_active = True
-            self._docking_step_time += 1
-            # print("inside dock")
-        else:
-            self._docking_prosess_active = False
-            self._docking_step_time = 0
-
-        required_docking_steps = 5 # TODO: Should this be config param?
-        if self._docking_prosess_active and self._docking_step_time >= required_docking_steps:
+        # Decide if vessel has reach the goal (inside desired heading, distance and velocity)
+        if goal_distance <= self._desired_euclidian_goal_distance and 0 <= self.velocity[0] <= self.desired_surge_velocity and self.position[0] >= dock._position[0] and dock_angle_error < self._desired_heading_error:
             self._reached_goal = True
+            
+        self._collision = self.outside_map(self.max_x_pos, self.min_x_pos, self.max_y_pos, self.min_y_pos)
+        
 
         self._last_navi_state_dict = {
             'x_pos': self.position[0],
@@ -550,13 +543,14 @@ class Vessel():
             'sway_velocity': self.velocity[1],
             'yaw_rate': self.yaw_rate,
             'heading_error': dock_angle_error,
-            'boat_to_dock_heading_error': boat_to_dock_heading_error,
+            'boat_to_dock_heading_error': 0,
             'goal_distance': goal_distance,
             'relative_goal_x': goal_distance_vec[0],
             'relative_goal_y': goal_distance_vec[1],
-            'docking_active': self._docking_prosess_active,
+            # 'docking_active': self._docking_prosess_active,
             'look_ahead_heading_error': 0,
             'cross_track_error': 0,
+            'time_step': self._step_counter
         }
         
         navigation_states = np.array([self._last_navi_state_dict[state] for state in Vessel.NAVIGATION_FEATURES])
@@ -625,13 +619,12 @@ class Vessel():
         """Returns dictionary containing the most recent perception and navigation
         states."""
         return {
-            'distance_measurements': self._last_sensor_dist_measurements,
             'speed_measurements': self._last_sensor_speed_measurements,
             'feasible_distances': self._last_sector_feasible_dists,
             'navigation': self._last_navi_state_dict,
             'collision' : self._collision,
             'progress': self._progress,
-            # 'last_progress': self._last_progress,
+            'last_progress': self._last_progress,
             'reached_goal': self._reached_goal
         }
 

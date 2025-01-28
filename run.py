@@ -30,7 +30,7 @@ from datetime import datetime
 #from gym_auv.utils.radarCNN import LidarCNN_pretrained, PerceptionNavigationExtractor
 
 ### THOMAS
-from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
+from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor, NavigatioNN
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -190,6 +190,7 @@ def play_scenario(env, recorded_env, args, figure_folder, agent=None):
                         a = np.array([0.0, 0.0])
                     else:
                         a, _ = agent.predict(obs, deterministic=True)
+                        print('Autopilot action: ', a)
                 obs, r, done, info = env.step(a)
 
                 
@@ -415,8 +416,8 @@ def main(args):
                     #layers = [64, 64]
                     #policy_kwargs = dict(net_arch = [dict(vf=layers, pi=layers)])
                     policy_kwargs = dict(
-                        features_extractor_class = PerceptionNavigationExtractor,
-                        features_extractor_kwargs = dict(features_dim=12),
+                        features_extractor_class = NavigatioNN,
+                        #features_extractor_kwargs = dict(features_dim=12),
                         #net_arch = [128, 64, dict(pi=[32]), dict(vf=[32])]
                         #net_arch=[dict(pi=[64, 64], vf=[64, 64])]
                         net_arch=[dict(pi=[128, 64, 32], vf=[128, 64, 32])]
@@ -426,8 +427,8 @@ def main(args):
                         **hyperparams, policy_kwargs=policy_kwargs
                     )
                     print("Agent network construction:")
-                    print("CNN Feature Extractor:", agent.policy.features_extractor.extractors["perception"])
-                    print("Navigation Passthrough:", agent.policy.features_extractor.extractors["navigation"])
+                    # print("CNN Feature Extractor:", agent.policy.features_extractor.extractors["perception"])
+                    # print("Navigation Passthrough:", agent.policy.features_extractor.extractors["navigation"])
                     #dataset = ExpertDataset(expert_path='gail_expert.npz', traj_limitation=1, batch_size=128)
                     #print('Pretraining {} agent on "{}"'.format(args.algo.upper(), env_id))
                     #agent.pretrain(dataset, n_epochs=1000)
